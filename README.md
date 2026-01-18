@@ -1,8 +1,16 @@
-# Steam P2P Info Modern
+<p align="center">
+  <img src="icon.png" width="128" height="128" alt="Steam P2P Info Icon">
+</p>
 
-基于 [tremwil/SteamP2PInfo](https://github.com/tremwil/SteamP2PInfo) 的现代化重构版本。
+<h1 align="center">Steam P2P Info Modern</h1>
 
-![Preview](preview.png)
+<p align="center">
+  基于 <a href="https://github.com/tremwil/SteamP2PInfo">tremwil/SteamP2PInfo</a> 的现代化重构版本
+</p>
+
+<p align="center">
+  <img src="screenshot.png" alt="Preview">
+</p>
 
 ## ✨ 新特性
 
@@ -36,7 +44,7 @@
 
 ```powershell
 # 1. 克隆仓库
-git clone https://github.com/xxx/SteamP2PInfo-Modern.git
+git clone https://github.com/ZEERDEER/SteamP2PInfo-Modern.git
 cd SteamP2PInfo-Modern
 
 # 2. 运行构建脚本（需要管理员权限）
@@ -63,15 +71,19 @@ cd SteamP2PInfo-Modern
 | 记录活动日志 | 保存玩家连接/断开记录 |
 | 新会话提示音 | 有新玩家加入时播放声音 |
 
-## 📁 配置文件位置
+## 📁 配置文件位置（便携模式）
+
+配置文件存储在程序所在目录：
 
 ```
-%APPDATA%\SteamP2PInfo\
-├── settings.json          # 全局设置
-├── games\
-│   ├── eldenring.json     # 游戏特定配置
-│   └── DarkSoulsIII.json
-└── WebView2\              # WebView2 缓存
+SteamP2PInfo/
+├── config/
+│   ├── settings.json      # 全局设置
+│   └── games/
+│       ├── eldenring.json # 游戏特定配置
+│       └── DarkSoulsIII.json
+├── logs/                  # 活动日志
+└── cache/                 # WebView2 缓存
 ```
 
 ## 🙏 致谢
