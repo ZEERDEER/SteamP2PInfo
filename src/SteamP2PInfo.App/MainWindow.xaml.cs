@@ -303,8 +303,8 @@ public partial class MainWindow : Window
             if (overlay.TryGetProperty("enabled", out var oe)) config.Overlay.Enabled = oe.GetBoolean();
             if (overlay.TryGetProperty("showSteamId", out var ssi)) config.Overlay.ShowSteamId = ssi.GetBoolean();
             if (overlay.TryGetProperty("showConnectionQuality", out var scq)) config.Overlay.ShowConnectionQuality = scq.GetBoolean();
-            if (overlay.TryGetProperty("bannerFormat", out var bf)) config.Overlay.BannerFormat = bf.GetString() ?? config.Overlay.BannerFormat;
-            if (overlay.TryGetProperty("font", out var font)) config.Overlay.Font = font.GetString() ?? config.Overlay.Font;
+            if (overlay.TryGetProperty("bannerFormat", out var bf)) config.Overlay.BannerFormat = bf.GetString() ?? "";
+            if (overlay.TryGetProperty("font", out var font)) config.Overlay.Font = font.GetString() ?? "";
             if (overlay.TryGetProperty("anchor", out var anchor)) config.Overlay.Anchor = anchor.GetString() ?? config.Overlay.Anchor;
             if (overlay.TryGetProperty("xOffset", out var xo)) config.Overlay.XOffset = xo.GetDouble();
             if (overlay.TryGetProperty("yOffset", out var yo)) config.Overlay.YOffset = yo.GetDouble();

@@ -55,6 +55,12 @@ public partial class OverlayWindow : Window
     [DllImport("shcore.dll")]
     private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
     
+    [DllImport("user32.dll")]
+    private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+    
+    [DllImport("user32.dll")]
+    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+    
     private delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd,
         int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
     
@@ -81,6 +87,10 @@ public partial class OverlayWindow : Window
     private const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
     private const uint WINEVENT_OUTOFCONTEXT = 0x0000;
     
+    private const int WM_HOTKEY = 0x0312;
+    private const int HOTKEY_ID = 9000;
+    private const uint VK_HOME = 0x24;  // Home 键
+    
     #endregion
     
     private readonly IntPtr _targetHandle;
@@ -88,6 +98,7 @@ public partial class OverlayWindow : Window
     private readonly uint _targetThreadId;
     
     private WindowInteropHelper? _interopHelper;
+    private HwndSource? _hwndSource;
     private WinEventDelegate? _locationEventDelegate;
     private WinEventDelegate? _foregroundEventDelegate;
     private IntPtr _locationHook;
@@ -97,6 +108,9 @@ public partial class OverlayWindow : Window
     private bool _isDragging;
     private bool _isClosed;
     private int _tickCount = 0;  // 用于控制不同更新频率
+    
+    private bool _hotkeyRegistered;
+    private bool _manuallyHidden;  // 用户通过热键手动隐藏
     
     public ObservableCollection<OverlayPeerViewModel> Peers { get; } = new();
     
@@ -119,6 +133,13 @@ public partial class OverlayWindow : Window
         int exStyle = GetWindowLong(_interopHelper.Handle, GWL_EXSTYLE);
         SetWindowLong(_interopHelper.Handle, GWL_EXSTYLE, 
             exStyle | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_LAYERED);
+        
+        // 添加 HwndSource hook 用于接收 WM_HOTKEY 消息
+        _hwndSource = HwndSource.FromHwnd(_interopHelper.Handle);
+        _hwndSource?.AddHook(WndProc);
+        
+        // 注册热键
+        RegisterOverlayHotkey();
         
         // 安装窗口事件钩子
         InstallHooks();
@@ -147,6 +168,40 @@ public partial class OverlayWindow : Window
             EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND,
             IntPtr.Zero, _foregroundEventDelegate,
             0, 0, WINEVENT_OUTOFCONTEXT);
+    }
+    
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_HOTKEY && wParam.ToInt32() == HOTKEY_ID)
+        {
+            _manuallyHidden = !_manuallyHidden;
+            UpdateVisibility();
+            handled = true;
+        }
+        return IntPtr.Zero;
+    }
+    
+    private void RegisterOverlayHotkey()
+    {
+        if (_interopHelper == null) return;
+        
+        var config = GameConfig.Current;
+        if (config == null || !config.HotkeysEnabled) return;
+        
+        // 如果已注册，不需要重新注册
+        if (_hotkeyRegistered) return;
+        
+        // 注册 Home 键热键
+        _hotkeyRegistered = RegisterHotKey(_interopHelper.Handle, HOTKEY_ID, 0, VK_HOME);
+    }
+    
+    private void UnregisterOverlayHotkey()
+    {
+        if (_hotkeyRegistered && _interopHelper != null)
+        {
+            UnregisterHotKey(_interopHelper.Handle, HOTKEY_ID);
+            _hotkeyRegistered = false;
+        }
     }
     
     private void OnLocationChange(IntPtr hWinEventHook, uint eventType, IntPtr hwnd,
@@ -193,6 +248,22 @@ public partial class OverlayWindow : Window
         UpdatePosition();
         UpdateOverlayStyle();
         UpdateVisibility();
+        
+        // 检查热键配置是否变化
+        var config = GameConfig.Current;
+        if (config != null)
+        {
+            bool hotkeysEnabled = config.HotkeysEnabled;
+            
+            if (hotkeysEnabled && !_hotkeyRegistered)
+            {
+                RegisterOverlayHotkey();
+            }
+            else if (!hotkeysEnabled && _hotkeyRegistered)
+            {
+                UnregisterOverlayHotkey();
+            }
+        }
         
         // 每 20 次 tick (1秒) 更新 peers 和 header - 避免频繁 API 调用
         if (_tickCount >= 20)
@@ -315,7 +386,16 @@ public partial class OverlayWindow : Window
         if (_isClosed) return;
         
         var config = GameConfig.Current?.Overlay;
-        bool shouldShow = config?.Enabled == true && !IsIconic(_targetHandle);
+        
+        // 检查目标窗口是否存在且未最小化
+        bool targetValid = !IsIconic(_targetHandle);
+        
+        // 检查当前前台窗口是否是目标窗口
+        var foreground = GetForegroundWindow();
+        bool targetIsForeground = foreground == _targetHandle;
+        
+        // 只在目标窗口是前台窗口且启用 overlay 且用户没有手动隐藏时显示
+        bool shouldShow = config?.Enabled == true && targetValid && targetIsForeground && !_manuallyHidden;
         
         if (shouldShow && !IsVisible)
         {
@@ -328,14 +408,10 @@ public partial class OverlayWindow : Window
         }
         
         // 当目标窗口获得焦点时置顶
-        if (IsVisible && _interopHelper != null)
+        if (IsVisible && _interopHelper != null && targetIsForeground)
         {
-            bool isForeground = GetForegroundWindow() == _targetHandle;
-            if (isForeground)
-            {
-                SetWindowPos(_interopHelper.Handle, HWND_TOPMOST, 0, 0, 0, 0,
-                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-            }
+            SetWindowPos(_interopHelper.Handle, HWND_TOPMOST, 0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         }
     }
     
@@ -434,6 +510,13 @@ public partial class OverlayWindow : Window
     {
         _isClosed = true;
         _updateTimer?.Stop();
+        
+        // 注销热键
+        UnregisterOverlayHotkey();
+        
+        // 移除窗口消息 hook
+        _hwndSource?.RemoveHook(WndProc);
+        _hwndSource = null;
         
         if (_locationHook != IntPtr.Zero)
             UnhookWinEvent(_locationHook);
