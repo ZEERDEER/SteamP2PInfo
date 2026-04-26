@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Microsoft.Web.WebView2.Core;
@@ -20,6 +21,7 @@ namespace SteamP2PInfo.App;
 public partial class MainWindow : Window
 {
     private const string STEAM_IPC_COMMAND = "log_ipc \"BeginAuthSession,EndAuthSession,LeaveLobby,SendClanChatMessage\"";
+    private const int DEFAULT_OVERLAY_HOTKEY = 0x24;
     
     // DWM API for Windows 11 rounded corners
     private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
@@ -193,7 +195,13 @@ public partial class MainWindow : Window
         if (config.SteamAppId == 0) return false;
         Environment.SetEnvironmentVariable("SteamAppId", config.SteamAppId.ToString());
         if (!SteamAPI.Init()) return false;
-        if (!SteamPeerManager.Initialize()) return false;
+
+        // 不要让 Steam 日志监听失败阻断连接流程。
+        // 首次添加 AppID 后，用户还没执行 log_ipc 命令时，日志文件可能不存在或路径还没刷新；
+        // 这时也应该进入会话并弹出“打开 Steam 控制台并复制”提示。
+        var peerManagerReady = SteamPeerManager.Initialize();
+        System.Diagnostics.Debug.WriteLine($"[AttachGame] SteamPeerManager initialized: {peerManagerReady}");
+
         ETWPingMonitor.Start();
         _attachedWindow = window;
         _updateTimer = new System.Threading.Timer(_ => Dispatcher.Invoke(UpdatePeers), null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
@@ -303,6 +311,7 @@ public partial class MainWindow : Window
             if (overlay.TryGetProperty("enabled", out var oe)) config.Overlay.Enabled = oe.GetBoolean();
             if (overlay.TryGetProperty("showSteamId", out var ssi)) config.Overlay.ShowSteamId = ssi.GetBoolean();
             if (overlay.TryGetProperty("showConnectionQuality", out var scq)) config.Overlay.ShowConnectionQuality = scq.GetBoolean();
+            if (overlay.TryGetProperty("hotkey", out var hk)) config.Overlay.Hotkey = ReadVirtualKeyCode(hk);
             if (overlay.TryGetProperty("bannerFormat", out var bf)) config.Overlay.BannerFormat = bf.GetString() ?? "";
             if (overlay.TryGetProperty("font", out var font)) config.Overlay.Font = font.GetString() ?? "";
             if (overlay.TryGetProperty("anchor", out var anchor)) config.Overlay.Anchor = anchor.GetString() ?? config.Overlay.Anchor;
@@ -313,7 +322,49 @@ public partial class MainWindow : Window
             if (overlay.TryGetProperty("strokeWidth", out var sw)) config.Overlay.StrokeWidth = sw.GetDouble();
         }
         config.Save();
+        _overlayWindow?.RefreshHotkeyRegistration();
         return true;
+    }
+    
+    private static int ReadVirtualKeyCode(JsonElement hotkeyElement)
+    {
+        return hotkeyElement.ValueKind switch
+        {
+            JsonValueKind.Number => hotkeyElement.TryGetInt32(out var vk) ? vk : DEFAULT_OVERLAY_HOTKEY,
+            JsonValueKind.String => ParseVirtualKeyCode(hotkeyElement.GetString()),
+            _ => DEFAULT_OVERLAY_HOTKEY
+        };
+    }
+    
+    private static int ParseVirtualKeyCode(string? keyName)
+    {
+        if (string.IsNullOrWhiteSpace(keyName)) return DEFAULT_OVERLAY_HOTKEY;
+        if (int.TryParse(keyName, out var vk)) return vk;
+        try
+        {
+            var key = (Key)new KeyConverter().ConvertFromString(keyName)!;
+            var virtualKey = KeyInterop.VirtualKeyFromKey(key);
+            return virtualKey > 0 ? virtualKey : DEFAULT_OVERLAY_HOTKEY;
+        }
+        catch
+        {
+            return keyName.Trim().ToUpperInvariant() switch
+            {
+                "ESC" or "ESCAPE" => 0x1B,
+                "SPACE" => 0x20,
+                "HOME" => DEFAULT_OVERLAY_HOTKEY,
+                "END" => 0x23,
+                "INSERT" or "INS" => 0x2D,
+                "DELETE" or "DEL" => 0x2E,
+                "PAGEUP" or "PRIOR" => 0x21,
+                "PAGEDOWN" or "NEXT" => 0x22,
+                "LEFT" or "ARROWLEFT" => 0x25,
+                "UP" or "ARROWUP" => 0x26,
+                "RIGHT" or "ARROWRIGHT" => 0x27,
+                "DOWN" or "ARROWDOWN" => 0x28,
+                _ => DEFAULT_OVERLAY_HOTKEY
+            };
+        }
     }
     
     private object GetAppConfig()
@@ -369,6 +420,13 @@ public partial class MainWindow : Window
     {
         if (_attachedWindow == null) return;
         
+        if (!WindowService.GetVisibleWindows().Any(w => w.Handle == _attachedWindow.Handle))
+        {
+            DetachGame();
+            SendSessionUpdate(null);
+            return;
+        }
+        
         // 调试模式下跳过 Steam API 调用
         if (!SteamPeerManager.DebugMode)
         {
@@ -377,10 +435,18 @@ public partial class MainWindow : Window
         }
     }
     
+    private void SendSessionUpdate(object? session)
+    {
+        if (webView.CoreWebView2 == null) return;
+        var message = JsonSerializer.Serialize(new { type = "sessionUpdated", data = session });
+        webView.CoreWebView2.PostWebMessageAsString(message);
+    }
+    
     private bool OpenSteamConsole()
     {
         try
         {
+            WpfClipboard.SetText(STEAM_IPC_COMMAND);
             var psi = new System.Diagnostics.ProcessStartInfo("steam://open/console")
             {
                 UseShellExecute = true

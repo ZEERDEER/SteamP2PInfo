@@ -90,6 +90,7 @@ public partial class OverlayWindow : Window
     private const int WM_HOTKEY = 0x0312;
     private const int HOTKEY_ID = 9000;
     private const uint VK_HOME = 0x24;  // Home 键
+    private const uint DEFAULT_OVERLAY_HOTKEY = VK_HOME;
     
     #endregion
     
@@ -110,7 +111,10 @@ public partial class OverlayWindow : Window
     private int _tickCount = 0;  // 用于控制不同更新频率
     
     private bool _hotkeyRegistered;
+    private int _registeredHotkey;
     private bool _manuallyHidden;  // 用户通过热键手动隐藏
+    private int _lastHotkey = -1;
+    private bool _lastHotkeysEnabled;
     
     public ObservableCollection<OverlayPeerViewModel> Peers { get; } = new();
     
@@ -181,18 +185,33 @@ public partial class OverlayWindow : Window
         return IntPtr.Zero;
     }
     
+    public void RefreshHotkeyRegistration()
+    {
+        if (_isClosed) return;
+        Dispatcher.BeginInvoke(RegisterOverlayHotkey);
+    }
+    
     private void RegisterOverlayHotkey()
     {
         if (_interopHelper == null) return;
         
         var config = GameConfig.Current;
-        if (config == null || !config.HotkeysEnabled) return;
+        if (config == null || !config.HotkeysEnabled)
+        {
+            UnregisterOverlayHotkey();
+            _lastHotkeysEnabled = config?.HotkeysEnabled == true;
+            return;
+        }
         
-        // 如果已注册，不需要重新注册
-        if (_hotkeyRegistered) return;
+        var hotkey = config.Overlay.Hotkey > 0 ? config.Overlay.Hotkey : (int)DEFAULT_OVERLAY_HOTKEY;
+        if (_hotkeyRegistered && _registeredHotkey == hotkey) return;
         
-        // 注册 Home 键热键
-        _hotkeyRegistered = RegisterHotKey(_interopHelper.Handle, HOTKEY_ID, 0, VK_HOME);
+        UnregisterOverlayHotkey();
+        _hotkeyRegistered = RegisterHotKey(_interopHelper.Handle, HOTKEY_ID, 0, (uint)hotkey);
+        _registeredHotkey = _hotkeyRegistered ? hotkey : 0;
+        _lastHotkey = hotkey;
+        _lastHotkeysEnabled = config.HotkeysEnabled;
+        System.Diagnostics.Debug.WriteLine($"[Overlay] RegisterHotKey VK=0x{hotkey:X2}, success={_hotkeyRegistered}");
     }
     
     private void UnregisterOverlayHotkey()
@@ -201,7 +220,9 @@ public partial class OverlayWindow : Window
         {
             UnregisterHotKey(_interopHelper.Handle, HOTKEY_ID);
             _hotkeyRegistered = false;
+            _registeredHotkey = 0;
         }
+        _lastHotkey = -1;
     }
     
     private void OnLocationChange(IntPtr hWinEventHook, uint eventType, IntPtr hwnd,
@@ -253,16 +274,15 @@ public partial class OverlayWindow : Window
         var config = GameConfig.Current;
         if (config != null)
         {
-            bool hotkeysEnabled = config.HotkeysEnabled;
-            
-            if (hotkeysEnabled && !_hotkeyRegistered)
+            var hotkey = config.Overlay.Hotkey > 0 ? config.Overlay.Hotkey : (int)DEFAULT_OVERLAY_HOTKEY;
+            if (config.HotkeysEnabled != _lastHotkeysEnabled || hotkey != _lastHotkey || !_hotkeyRegistered && config.HotkeysEnabled)
             {
                 RegisterOverlayHotkey();
             }
-            else if (!hotkeysEnabled && _hotkeyRegistered)
-            {
-                UnregisterOverlayHotkey();
-            }
+        }
+        else if (_hotkeyRegistered)
+        {
+            UnregisterOverlayHotkey();
         }
         
         // 每 20 次 tick (1秒) 更新 peers 和 header - 避免频繁 API 调用

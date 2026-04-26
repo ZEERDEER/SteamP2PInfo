@@ -5,12 +5,20 @@ type MessageHandler = (data: unknown) => void;
 
 const messageHandlers = new Map<string, MessageHandler>();
 let messageId = 0;
+let setGlobalSession: (session: GameSession | null) => void = () => {};
+let setGlobalConfig: (config: GameConfig | null) => void = () => {};
 
 // 初始化 WebView2 消息监听
 if (typeof window !== 'undefined' && window.chrome?.webview) {
   window.chrome.webview.addEventListener('message', (e) => {
     try {
       const message = JSON.parse(e.data);
+      if (message.type === 'sessionUpdated') {
+        setGlobalSession(message.data as GameSession | null);
+        if (message.data === null) setGlobalConfig(null);
+        return;
+      }
+      
       const handler = messageHandlers.get(message.id);
       if (handler) {
         handler(message.data);
@@ -109,6 +117,15 @@ export function useBridge() {
   const [config, setConfig] = useState<GameConfig | null>(null);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setGlobalSession = setSession;
+    setGlobalConfig = setConfig;
+    return () => {
+      setGlobalSession = () => {};
+      setGlobalConfig = () => {};
+    };
+  }, []);
 
   const getWindows = useCallback(async (): Promise<WindowInfo[]> => {
     return sendMessage<WindowInfo[]>('getWindows');

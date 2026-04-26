@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Terminal, Copy, Check, X } from 'lucide-react';
+import { Terminal, X } from 'lucide-react';
 
 const STEAM_COMMAND = 'log_ipc "BeginAuthSession,EndAuthSession,LeaveLobby,SendClanChatMessage"';
 
@@ -11,19 +10,12 @@ interface SteamConsoleDialogProps {
 }
 
 export function SteamConsoleDialog({ isOpen, onClose, onOpenConsole, onCopyCommand }: SteamConsoleDialogProps) {
-  const [copied, setCopied] = useState(false);
-
   if (!isOpen) return null;
 
-  const handleCopyCommand = async () => {
-    await onCopyCommand(STEAM_COMMAND);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const handleOpenConsoleAndCopy = async () => {
+    await onCopyCommand(STEAM_COMMAND);
     await onOpenConsole();
-    await handleCopyCommand();
+    onClose();
   };
 
   return (
@@ -48,7 +40,7 @@ export function SteamConsoleDialog({ isOpen, onClose, onOpenConsole, onCopyComma
         {/* Content */}
         <div className="p-6 space-y-4">
           <p className="text-gray-300 leading-relaxed">
-            Steam 控制台已打开。请在控制台中输入以下命令以启用匹配日志记录：
+            点击下方按钮后会自动复制命令并打开 Steam 控制台。控制台打开后直接粘贴并回车即可启用匹配日志记录：
           </p>
 
           {/* Command Box */}
@@ -64,34 +56,13 @@ export function SteamConsoleDialog({ isOpen, onClose, onOpenConsole, onCopyComma
         </div>
 
         {/* Actions */}
-        <div className="px-6 pb-6 flex gap-3">
+        <div className="px-6 pb-6">
           <button
             onClick={handleOpenConsoleAndCopy}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-accent text-white rounded-xl font-medium hover:bg-accent/90 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-accent text-white rounded-xl font-medium hover:bg-accent/90 transition-colors"
           >
             <Terminal size={18} />
-            打开控制台并复制
-          </button>
-          <button
-            onClick={handleCopyCommand}
-            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-colors ${
-              copied
-                ? 'bg-green-600 text-white'
-                : 'bg-white/10 text-gray-300 hover:bg-white/20'
-            }`}
-          >
-            {copied ? <Check size={18} /> : <Copy size={18} />}
-            {copied ? '已复制' : '复制'}
-          </button>
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 pb-4">
-          <button
-            onClick={onClose}
-            className="w-full py-2 text-gray-500 hover:text-gray-300 transition-colors text-sm"
-          >
-            稍后手动操作
+            打开 Steam 控制台并复制
           </button>
         </div>
       </div>

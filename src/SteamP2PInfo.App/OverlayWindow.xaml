@@ -43,7 +43,8 @@
                                                 Stroke="{Binding StrokeBrush}"
                                                 StrokeThickness="{Binding StrokeWidth}"
                                                 FontFamily="{Binding FontFamilyObj}"
-                                                FontSize="{Binding FontSize}"/>
+                                                FontSize="{Binding FontSize}"
+                                                FontWeight="Bold"/>
                         <!-- Steam ID (optional) -->
                         <local:OverlayTextBlock Text="{Binding SteamIdDisplay}" 
                                                 Margin="5,0"
@@ -52,6 +53,7 @@
                                                 StrokeThickness="{Binding StrokeWidth}"
                                                 FontFamily="{Binding FontFamilyObj}"
                                                 FontSize="{Binding FontSize}"
+                                                FontWeight="Bold"
                                                 Visibility="{Binding ShowSteamId, Converter={StaticResource BoolToVisibility}}"/>
                         <!-- Ping -->
                         <local:OverlayTextBlock Text="{Binding PingDisplay}" 
@@ -60,7 +62,8 @@
                                                 Stroke="{Binding StrokeBrush}"
                                                 StrokeThickness="{Binding StrokeWidth}"
                                                 FontFamily="{Binding FontFamilyObj}"
-                                                FontSize="{Binding FontSize}"/>
+                                                FontSize="{Binding FontSize}"
+                                                FontWeight="Bold"/>
                         <!-- Connection Quality (optional) -->
                         <local:OverlayTextBlock Text="{Binding QualityDisplay}" 
                                                 Margin="5,0"
@@ -69,6 +72,7 @@
                                                 StrokeThickness="{Binding StrokeWidth}"
                                                 FontFamily="{Binding FontFamilyObj}"
                                                 FontSize="{Binding FontSize}"
+                                                FontWeight="Bold"
                                                 Visibility="{Binding ShowQuality, Converter={StaticResource BoolToVisibility}}"/>
                     </StackPanel>
                 </DataTemplate>

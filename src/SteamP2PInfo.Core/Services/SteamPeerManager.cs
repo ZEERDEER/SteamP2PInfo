@@ -28,8 +28,7 @@ public static class SteamPeerManager
 
     // 调试日志
     private static readonly string DebugLogPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "SteamP2PInfo", "debug.log");
+        AppPaths.AppRootDir, "debug.log");
 
     private static void Log(string message)
     {

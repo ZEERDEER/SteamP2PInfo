@@ -423,9 +423,15 @@ export function ConfigPanel({ config, appConfig, onUpdate, onUpdateAppConfig, on
             <SectionTitle icon={<Keyboard size={14} />} title="悬浮窗热键" />
             <Toggle
               label="启用热键"
-              description="按 Home 键显示/隐藏悬浮窗"
+              description="按设置的按键显示/隐藏悬浮窗"
               checked={config.hotkeysEnabled}
               onChange={(checked) => onUpdate({ hotkeysEnabled: checked })}
+            />
+            <HotkeyInput
+              label="悬浮窗显示/隐藏"
+              description="未设置时默认使用 Home 键"
+              value={config.overlay.hotkey}
+              onChange={(value) => onUpdate({ overlay: { ...config.overlay, hotkey: value } })}
             />
           </div>
 
