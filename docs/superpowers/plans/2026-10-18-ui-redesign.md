@@ -56,7 +56,7 @@ Expected success line: `SteamP2PInfo -> ...\SteamP2PInfo\bin\Debug\SteamP2PInfo.
 **Files:**
 - Modify: `.gitignore` (already edited: `.superpowers/` line), `CLAUDE.md` (already created, untracked)
 
-- [ ] **Step 1: Commit the pending housekeeping files**
+- [x] **Step 1: Commit the pending housekeeping files**
 
 ```bash
 cd "C:/Users/zeer/Desktop/SteamP2PInfo"
@@ -74,7 +74,7 @@ Expected: commit succeeds, `git status --short` shows a clean tree.
 - Modify: `SteamP2PInfo/packages.config`
 - Modify: `SteamP2PInfo/SteamP2PInfo.csproj` (Reference items)
 
-- [ ] **Step 1: Add WPF-UI to packages.config**
+- [x] **Step 1: Add WPF-UI to packages.config**
 
 Insert these two lines into `SteamP2PInfo/packages.config` (keep list alphabetical-ish, exact ids matter):
 
@@ -83,7 +83,7 @@ Insert these two lines into `SteamP2PInfo/packages.config` (keep list alphabetic
   <package id="WPF-UI.Abstractions" version="4.3.0" targetFramework="net48" />
 ```
 
-- [ ] **Step 2: Restore and inspect what NuGet produced**
+- [x] **Step 2: Restore and inspect what NuGet produced**
 
 ```bash
 cd "C:/Users/zeer/Desktop/SteamP2PInfo"
@@ -94,7 +94,7 @@ ls packages/WPF-UI.4.3.0/lib packages/WPF-UI.Abstractions.4.3.0/lib packages/Sys
 
 Expected: `WPF-UI.4.3.0`, `WPF-UI.Abstractions.4.3.0`, `System.Memory.4.6.3` and the transitive `System.Buffers.*`, `System.Numerics.Vectors.*`, `System.Runtime.CompilerServices.Unsafe.*` appear. The third command prints the real lib folder names (`net472`, `netstandard2.0`, `net462`, `net461`, …) — use exactly those in the next step instead of the example paths.
 
-- [ ] **Step 3: Add assembly references to the csproj**
+- [x] **Step 3: Add assembly references to the csproj**
 
 In `SteamP2PInfo/SteamP2PInfo.csproj`, inside the existing `<ItemGroup>` that contains `<Reference Include="MahApps.Metro" ...>` (keep MahApps for now), add:
 
@@ -113,7 +113,7 @@ In `SteamP2PInfo/SteamP2PInfo.csproj`, inside the existing `<ItemGroup>` that co
 
 (If Step 2 showed different transitive versions, add matching `Reference` items for `System.Buffers`, `System.Numerics.Vectors`, `System.Runtime.CompilerServices.Unsafe` following the same pattern, using their real `lib\net461` / `lib\net46` paths.)
 
-- [ ] **Step 4: Build to verify the net48 consumption works**
+- [x] **Step 4: Build to verify the net48 consumption works**
 
 ```bash
 "D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -p:Configuration=Debug -v:m
@@ -121,11 +121,11 @@ In `SteamP2PInfo/SteamP2PInfo.csproj`, inside the existing `<ItemGroup>` that co
 
 Expected: `0 Error(s)`. If MSBuild warns MSB3277 (conflicting versions), that is fine for now; Task 9 resolves the final state.
 
-- [ ] **Step 5: MANUAL — confirm the app still starts with the old UI**
+- [x] **Step 5: MANUAL — confirm the app still starts with the old UI**
 
 Run `SteamP2PInfo/bin/Debug/SteamP2PInfo.exe` (accept the UAC prompt). Expected: the old Metro window opens exactly as before.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add SteamP2PInfo/packages.config SteamP2PInfo/SteamP2PInfo.csproj
@@ -1954,6 +1954,8 @@ Expected: the first command matches only `packages.config` and `SteamP2PInfo.csp
 ```
 
 Expected: `0 Error(s)`.
+
+Two dependency-workflow facts recorded during Task 2 (both verified there by measurement): (a) this `packages.config` restore does **not** resolve transitive dependencies — every assembly the app loads must be listed explicitly in both `packages.config` and the csproj, or a fresh clone will not build; (b) if you ever choose to bump the pinned `System.Runtime.CompilerServices.Unsafe` instead of using the Task 5 step-12 binding redirect, the correct package version is **6.1.2** — its assembly version is 6.0.3.0, which is what `Wpf.Ui` and `System.Memory` reference (there is no published package "6.0.3"). Rebuild afterwards and confirm the 18 MSB3277 warnings drop to 0.
 
 - [ ] **Step 3: Build Release and check the exe.config question**
 
