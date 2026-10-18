@@ -2282,7 +2282,7 @@ The user waived pre-push testing on 2026-10-18 ("直接推送到GitHub，有问�
 
 **Files:** none (git + GitHub API only)
 
-- [ ] **Step 1: Push the backup branch of the old version**
+- [x] **Step 1: Push the backup branch of the old version**
 
 ```bash
 cd "C:/Users/zeer/Desktop/SteamP2PInfo"
@@ -2291,7 +2291,7 @@ git push origin backup/react-version
 
 Expected: new remote branch `backup/react-version` on github.com/ZEERDEER/SteamP2PInfo pointing at `aabfe6c` ("Fix overlay config and Steam console flow").
 
-- [ ] **Step 2: Force-push the redesigned master and push the tag**
+- [x] **Step 2: Force-push the redesigned master and push the tag**
 
 ```bash
 git push --force origin master
@@ -2302,7 +2302,7 @@ git push origin v2.0
 
 Expected: `master` tracks `origin/master`; tag `v2.0` exists on the remote.
 
-- [ ] **Step 3: Confirm the remote state**
+- [x] **Step 3: Confirm the remote state**
 
 ```bash
 git ls-remote --heads origin
@@ -2311,7 +2311,7 @@ git ls-remote --tags origin
 
 Expected: `refs/heads/master` = current local HEAD, `refs/heads/backup/react-version` = `aabfe6c`, `refs/tags/v2.0` = current local HEAD.
 
-- [ ] **Step 4: Create the GitHub Release with the ZIP (`gh` is not installed — use the REST API with the credential-manager token)**
+- [x] **Step 4: Create the GitHub Release with the ZIP (`gh` is not installed — use the REST API with the credential-manager token)**
 
 The stored git credential for github.com is a token that works for API calls. **Never echo the token.** One PowerShell script does it end to end:
 
@@ -2342,6 +2342,6 @@ foreach ($f in @("dist\SteamP2PInfo-V2.0.0.zip", "SteamP2PInfo\bin\Release\Steam
 
 Expected: release `v2.0` with two assets (`SteamP2PInfo-V2.0.0.zip`, `SteamP2PInfo.exe`) and their download URLs.
 
-- [ ] **Step 5: Fallback if the API call fails**
+- [x] **Step 5: Fallback if the API call fails**
 
 If the token is rejected or an upload errors, tell the user: the ZIP is at `dist\SteamP2PInfo-V2.0.0.zip`; publish via the web UI at `https://github.com/ZEERDEER/SteamP2PInfo/releases/new` — choose the already-pushed tag `v2.0`, paste the same notes, and attach the ZIP + exe.
