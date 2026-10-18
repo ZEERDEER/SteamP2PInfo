@@ -30,7 +30,7 @@
     </Window.Background>
     <StackPanel HorizontalAlignment="Left">
         <local:OverlayTextBlock x:Name="header" Style="{StaticResource defaultStyle}"></local:OverlayTextBlock>
-        <DataGrid CanUserSortColumns="False" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" HeadersVisibility="None" 
+        <DataGrid CanUserSortColumns="False" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" HeadersVisibility="None" RowHeight="26"
                   Background="Transparent" RowBackground="Transparent" ItemsSource="{Binding}" AutoGenerateColumns="False" Name="dataGrid" ColumnWidth="SizeToCells" MouseDoubleClick="dataGrid_MouseDoubleClick">
             <DataGrid.Columns>
                 <DataGridTemplateColumn Header="Steam Name">
@@ -50,14 +50,14 @@
                 <DataGridTemplateColumn Header="Ping">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <local:OverlayTextBlock Text="{Binding Ping, StringFormat=N0}" Fill="{Binding PingColor}" Style="{StaticResource defaultStyle}" />
+                            <local:OverlayTextBlock Text="{Binding Ping, StringFormat=N0}" TextAlignment="Right" Fill="{Binding PingColor}" Style="{StaticResource defaultStyle}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
                 <DataGridTemplateColumn Header="Connection Quality" Visibility="{Binding Source={x:Static config:GameConfig.Current}, Path=OverlayConfig.ShowConnectionQuality, Converter={StaticResource VisibleIfTrueConverter}}">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <local:OverlayTextBlock Text="{Binding ConnectionQuality, StringFormat=N2}" Style="{StaticResource defaultStyle}" />
+                            <local:OverlayTextBlock Text="{Binding ConnectionQuality, StringFormat=N2}" TextAlignment="Right" Style="{StaticResource defaultStyle}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
