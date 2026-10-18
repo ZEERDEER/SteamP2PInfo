@@ -2024,7 +2024,27 @@ grep -rniE "mahapps|controlzex" --include="*.cs" --include="*.xaml" --include="*
 grep -rn "Microsoft.VisualBasic" --include="*.cs" --include="*.csproj" SteamP2PInfo/ | grep -v obj/
 ```
 
-Expected: the first command matches only `packages\System.Runtime.CompilerServices.Unsafe.6.1.2\lib\net461\System.Runtime.CompilerServices.Unsafe.dll`, re-restore, rebuild, and confirm the Unsafe MSB3277 conflict disappears (the count drops from 18 to 0) and `bin\Debug\System.Runtime.CompilerServices.Unsafe.dll` reports assembly version 6.0.3.0.
+Expected: the first command matches only `packages.config` and `SteamP2PInfo.csproj`; the second matches only the `Microsoft.VisualBasic` reference line in `SteamP2PInfo.csproj` (its only consumer, `Interaction.InputBox`, was replaced in Task 4). If any `.cs`/`.xaml` hits remain, fix them first (they should have been handled in Tasks 3-7).
+
+- [ ] **Step 2: Remove the packages and references, and bump Unsafe**
+
+1. `SteamP2PInfo/packages.config`: delete the `ControlzEx` and `MahApps.Metro` `<package>` lines.
+2. `SteamP2PInfo/packages.config`: change the `System.Runtime.CompilerServices.Unsafe` package `version` from `6.0.0` to `6.1.2`.
+3. `SteamP2PInfo/SteamP2PInfo.csproj`: delete the `ControlzEx`, `MahApps.Metro` and `Microsoft.VisualBasic` `<Reference>` blocks (including the MahApps/ControlzEx `<HintPath>`s).
+4. `SteamP2PInfo/SteamP2PInfo.csproj`: update the Unsafe `<Reference>` `<HintPath>` to `packages\System.Runtime.CompilerServices.Unsafe.6.1.2\lib\net461\System.Runtime.CompilerServices.Unsafe.dll` (same file name, new version folder).
+
+Why the bump (decision taken 2026-10-18): a reflection probe confirmed `Wpf.Ui.dll` and `System.Memory.dll` both reference `System.Runtime.CompilerServices.Unsafe, Version=6.0.3.0` while the app ships assembly 6.0.0.0. Costura embeds the managed references and resolves them by simple name, so the drift was probably harmless in practice - but 6.1.2 ships assembly version 6.0.3.0 (there is no published package "6.0.3"), which makes the reference graph exact and clears the 18 MSB3277 warnings. Do this bump here, together with the removals, as one dependency-cleanup change.
+
+Dependency-workflow fact recorded during Task 2 (verified there by measurement): this `packages.config` restore does **not** resolve transitive dependencies - every assembly the app loads must be listed explicitly in both `packages.config` and the csproj, or a fresh clone will not build.
+
+5. Restore, then rebuild:
+
+```bash
+"D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -t:Restore -p:RestorePackagesConfig=true -v:m
+"D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -p:Configuration=Debug -v:m -clp:Summary
+```
+
+Expected: `0 Error(s)`; `packages/System.Runtime.CompilerServices.Unsafe.6.1.2/lib/net461/` exists after restore; the MSB3277 Unsafe warnings are gone from the build output (the managed DLLs are not on disk in `bin/Debug` - Costura embeds them - so verify at the package/restore level and via the warnings).
 
 - [ ] **Step 3: Build Release and check the exe.config question**
 
@@ -2041,7 +2061,7 @@ ls SteamP2PInfo/bin/Debug/*.config && grep -l "bindingRedirect" SteamP2PInfo/bin
 
 - [ ] **Step 4: Decide on the config file (only if Step 3 found binding redirects)**
 
-If `SteamP2PInfo.exe.config` contains `<bindingRedirect>` entries, the Release post-build must stop deleting it — otherwise the shipped exe can fail to load `System.Memory`/`Unsafe` on machines where versions differ. In that case edit `SteamP2PInfo/build.targets`:
+If `SteamP2PInfo.exe.config` contains `<bindingRedirect>` entries, the Release post-build must stop deleting it - otherwise the shipped exe can fail to load an assembly on machines where versions differ. In that case edit `SteamP2PInfo/build.targets`:
 
 ```xml
   <Target Name="PostBuildRelease" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
@@ -2049,18 +2069,20 @@ If `SteamP2PInfo.exe.config` contains `<bindingRedirect>` entries, the Release p
       <FilesToDelete Include="$(OutputPath)*.pdb; $(OutputPath)*.xml"/>
     </ItemGroup>
 ```
-(removing `$(OutputPath)*.config` from the delete list). If there are no binding redirects, leave `build.targets` unchanged.
+(removing `$(OutputPath)*.config` from the delete list). If there are no binding redirects, leave `build.targets` unchanged. Note (2026-10-18): the Debug `SteamP2PInfo.exe.config` observed before this task contained exactly one redirect (ControlzEx 0.0.0.0-5.0.0.0 -> 5.0.0.0). After removing ControlzEx, re-check empirically; the Unsafe bump in Step 2 makes an Unsafe redirect unnecessary.
 
-- [ ] **Step 5: MANUAL — run the Debug exe**
+- [ ] **Step 5: MANUAL - run the Debug exe**
 
 Run `SteamP2PInfo/bin/Debug/SteamP2PInfo.exe`. Expected: identical Fluent UI, no startup crash. If it crashes with a type-load/assembly error, re-check Step 2 (a MahApps reference may still be needed by a file missed by the sweep).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add -A
-git commit -m "build: remove MahApps.Metro and ControlzEx, keep WPF-UI only"
+git add SteamP2PInfo/packages.config SteamP2PInfo/SteamP2PInfo.csproj
+git commit -m "build: remove MahApps.Metro and ControlzEx, bump Unsafe to 6.1.2"
 ```
+
+Include `SteamP2PInfo/build.targets` in the `git add` if Step 4 edited it.
 
 ---
 
