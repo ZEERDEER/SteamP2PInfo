@@ -313,7 +313,7 @@ git commit -m "feat: add HotKeyBox control, drop MahApps HotKey converter depend
 - Modify: `SteamP2PInfo/MainWindow.xaml.cs`
 - Modify: `SteamP2PInfo/SteamP2PInfo.csproj`
 
-- [ ] **Step 1: Create `SteamP2PInfo/Dialogs.cs`**
+- [x] **Step 1: Create `SteamP2PInfo/Dialogs.cs`**
 
 ```csharp
 using System;
@@ -394,7 +394,7 @@ namespace SteamP2PInfo
 }
 ```
 
-- [ ] **Step 2: Replace dialog calls in `MainWindow.xaml.cs`**
+- [x] **Step 2: Replace dialog calls in `MainWindow.xaml.cs`**
 
 While `MainWindow` is still a MetroWindow, replace these call sites (do not restructure anything else in this task):
 
@@ -470,13 +470,13 @@ While `MainWindow` is still a MetroWindow, replace these call sites (do not rest
 ```
 5. The `this.Invoke(() => ...)` calls in `Timer_Tick` and the constructor: replace with `Dispatcher.Invoke(() => ...)` (MahApps extension being removed).
 
-- [ ] **Step 3: Add `Dialogs.cs` to csproj**
+- [x] **Step 3: Add `Dialogs.cs` to csproj**
 
 ```xml
     <Compile Include="Dialogs.cs" />
 ```
 
-- [ ] **Step 4: Build**
+- [x] **Step 4: Build**
 
 ```bash
 "D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -p:Configuration=Debug -v:m
@@ -484,11 +484,11 @@ While `MainWindow` is still a MetroWindow, replace these call sites (do not rest
 
 Expected: `0 Error(s)`.
 
-- [ ] **Step 5: MANUAL — run the app, confirm the window still opens**
+- [x] **Step 5: MANUAL — run the app, confirm the window still opens**
 
 Run `SteamP2PInfo/bin/Debug/SteamP2PInfo.exe`. Expected: old UI, opens normally.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A
@@ -553,6 +553,8 @@ namespace SteamP2PInfo
 ```
 
 (If `ApplicationAccentColorManager` is not the class name in 4.3.0, the build error names the real type in `Wpf.Ui.Appearance`; switch to it and rebuild.)
+
+Note (found by the Task 4 quality review): these two `ui:` dictionaries are also what give `Wpf.Ui.Controls.MessageBox` its template. Until they load, Task 4's dialogs render without their buttons, so this step is what makes the attach flow's AppId prompt and the console "Copy Command" dialog usable. No commit between Task 4 and this step is runnable on its own - do not runtime-verify one.
 
 - [ ] **Step 2: Create `SteamP2PInfo/Converters/UiConverters.cs`**
 
@@ -946,13 +948,22 @@ namespace SteamP2PInfo.Views
         <ui:Button x:Name="updateBadge" Grid.Row="0" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Center"
                    Margin="0,0,150,0" Padding="10,3" Click="UpdateBadge_Click" />
 
-        <ui:NavigationView x:Name="navigationView" Grid.Row="1" OpenPaneLength="152">
-            <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItem x:Name="navSession" Content="Session" Icon="{ui:SymbolIcon People24}" />
-                <ui:NavigationViewItem x:Name="navConfig" Content="Config" Icon="{ui:SymbolIcon Settings24}" />
-            </ui:NavigationView.MenuItems>
-            <ContentControl x:Name="rootContent" />
-        </ui:NavigationView>
+        <!-- NavigationView is the pane only: Wpf.Ui.Controls.NavigationView derives from Control and has no
+             content property, so the visible page lives in the sibling ContentControl (swapped in code-behind). -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="152" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ui:NavigationView x:Name="navigationView" Grid.Column="0" OpenPaneLength="152"
+                               PaneDisplayMode="Left" IsBackButtonVisible="Collapsed" IsPaneToggleVisible="False">
+                <ui:NavigationView.MenuItems>
+                    <ui:NavigationViewItem x:Name="navSession" Content="Session" Icon="{ui:SymbolIcon People24}" />
+                    <ui:NavigationViewItem x:Name="navConfig" Content="Config" Icon="{ui:SymbolIcon Settings24}" />
+                </ui:NavigationView.MenuItems>
+            </ui:NavigationView>
+            <ContentControl x:Name="rootContent" Grid.Column="1" Margin="16,14,16,10" />
+        </Grid>
 
         <Border Grid.Row="2" BorderBrush="#14FFFFFF" BorderThickness="0,1,0,0" Padding="16,7">
             <Grid>
@@ -2183,10 +2194,10 @@ git commit -m "feat: app icon (dark circle + accent network glyph)"
 
 ---
 
-### Task 12: Update CLAUDE.md and run the final verification
+### Task 12: Version bump, README, Release packaging, and final verification
 
 **Files:**
-- Modify: `CLAUDE.md`
+- Modify: `CLAUDE.md`, `README.md`, `SteamP2PInfo/VersionCheck.cs`, `.gitignore`
 
 - [ ] **Step 1: Update `CLAUDE.md`**
 
@@ -2197,8 +2208,18 @@ UI framework is WPF-UI 4.3.0 (FluentWindow + TitleBar + NavigationView; the app 
 ```
 2. In **Build**, after the "Known-benign warnings" paragraph, add: "`WPF-UI` restores from NuGet like the other packages; the Release post-build deletes `*.config` only if no binding redirects are needed (see `build.targets`)."
 3. In **Gotchas**, remove the bullet mentioning MahApps dialogs if present; adjust the bullet about `ILRepack`/`Directory.builds.targets` unchanged.
+4. In the same file, update the quoted version in the `VersionCheck.CurrentVersion` sentence from `"V1.2.0"` to `"V2.0.0"`.
 
-- [ ] **Step 2: Full Debug + Release verification**
+- [ ] **Step 2: Bump the version, update `README.md`, ignore `dist/`**
+
+1. `SteamP2PInfo/VersionCheck.cs`: change `public static readonly string CurrentVersion = "V1.2.0";` to `"V2.0.0"`. The release tag will be `v2.0`; `VersionCheck` only compares against tremwil's upstream API, so a fork release can never trigger a self-update nag.
+2. `README.md`: point the Releases link at the fork — `## [Releases](https://github.com/ZEERDEER/SteamP2PInfo/releases/)` — and add below the intro paragraph:
+```
+*Redesigned by [zeer](https://github.com/ZEERDEER) — original by [tremwil](https://github.com/tremwil).*
+```
+3. `.gitignore`: add a `dist/` line (the release ZIP output folder).
+
+- [ ] **Step 3: Full Debug + Release verification**
 
 ```bash
 "D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -p:Configuration=Debug -v:m
@@ -2206,26 +2227,37 @@ UI framework is WPF-UI 4.3.0 (FluentWindow + TitleBar + NavigationView; the app 
 ls SteamP2PInfo/bin/Release/
 ```
 
-Expected: both builds `0 Error(s)`; Release contains `SteamP2PInfo.exe`, `steam_api64.dll`, TraceEvent DLLs, `amd64/`.
+Expected: both builds with no errors (if the summary block is missing under `-v:m`, trust the exit code or add `-clp:Summary`); Release contains `SteamP2PInfo.exe`, `steam_api64.dll`, `Dia2Lib.dll`, `OSExtensions.dll`, `TraceReloggerLib.dll`, `amd64/`.
 
-- [ ] **Step 3: MANUAL — full smoke test against a live game (spec §6 checklist)**
+- [ ] **Step 4: Package the release ZIP**
 
-Run `SteamP2PInfo/bin/Release/SteamP2PInfo.exe` with a Steam game running, then check, one by one: attach flow incl. Steam console command dialog and clipboard copy; peers appear with name/ID/ping/quality (avatar or initial circle); F2 toggles the overlay; overlay follows the game window (move & focus); double-click opens profile; config edits persist to `config\{process}.json`; single-instance message; closing the game closes the app; credits line visible.
+```powershell
+New-Item -ItemType Directory -Force "dist" | Out-Null
+Compress-Archive -Path "SteamP2PInfo\bin\Release\*" -DestinationPath "dist\SteamP2PInfo-V2.0.0.zip" -Force
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[IO.Compression.ZipFile]::OpenRead("$PWD\dist\SteamP2PInfo-V2.0.0.zip").Entries | Select-Object -ExpandProperty FullName
+```
 
-- [ ] **Step 4: Commit**
+Expected: the ZIP lists `SteamP2PInfo.exe`, `steam_api64.dll`, the TraceEvent DLLs and the `amd64/` entries.
+
+- [ ] **Step 5: Commit**
 
 ```bash
-git add CLAUDE.md
-git commit -m "docs: update CLAUDE.md for the WPF-UI stack"
+git add CLAUDE.md README.md SteamP2PInfo/VersionCheck.cs .gitignore
+git commit -m "docs: bump to V2.0.0, README credits/releases link, dist/ ignore"
 ```
+
+- [ ] **Step 6: MANUAL smoke test — DEFERRED to the user (2026-10-18 decision)**
+
+The user explicitly waived pre-push testing ("直接推送到GitHub，有问题之后修改了接着推送就行"): they test the published release and report problems, which get fixed and re-pushed. **Do not block Task 13 on this step.** Keep the spec §6 checklist as the handoff list: attach flow incl. the Steam console dialog and clipboard copy; peers with name/ID/ping/quality (avatar or initial circle); F2 toggles the overlay; overlay follows the game window (move & focus); double-click opens the profile; config edits persist to `config\{process}.json`; single-instance message; closing the game closes the app; credits line visible; Mica backdrop + rounded corners on Win11.
 
 ---
 
-### Task 13: Publish to the user's repo (gated)
+### Task 13: Publish to the user's repo and create the release
 
-**Do not run until the user confirms Step 3 of Task 12 passed.**
+The user waived pre-push testing on 2026-10-18 ("直接推送到GitHub，有问题之后修改了接着推送就行"): push and publish as soon as Task 12's builds and ZIP are green, then fix reported problems and push again. Do not publish before the Release ZIP exists.
 
-**Files:** none (git only)
+**Files:** none (git + GitHub API only)
 
 - [ ] **Step 1: Push the backup branch of the old version**
 
@@ -2236,20 +2268,57 @@ git push origin backup/react-version
 
 Expected: new remote branch `backup/react-version` on github.com/ZEERDEER/SteamP2PInfo pointing at `aabfe6c` ("Fix overlay config and Steam console flow").
 
-- [ ] **Step 2: Force-push the redesigned master**
+- [ ] **Step 2: Force-push the redesigned master and push the tag**
 
 ```bash
 git push --force origin master
 git branch --set-upstream-to=origin/master master
-git branch -vv | head -5
+git tag -a v2.0 -m "v2.0 - Fluent UI redesign"
+git push origin v2.0
 ```
 
-Expected: `master` now tracks `origin/master`; the user's repo shows the redesign commits on top of upstream master.
+Expected: `master` tracks `origin/master`; tag `v2.0` exists on the remote.
 
 - [ ] **Step 3: Confirm the remote state**
 
 ```bash
 git ls-remote --heads origin
+git ls-remote --tags origin
 ```
 
-Expected: `refs/heads/master` = current local HEAD, `refs/heads/backup/react-version` = `aabfe6c`.
+Expected: `refs/heads/master` = current local HEAD, `refs/heads/backup/react-version` = `aabfe6c`, `refs/tags/v2.0` = current local HEAD.
+
+- [ ] **Step 4: Create the GitHub Release with the ZIP (`gh` is not installed — use the REST API with the credential-manager token)**
+
+The stored git credential for github.com is a token that works for API calls. **Never echo the token.** One PowerShell script does it end to end:
+
+```powershell
+$ErrorActionPreference = "Stop"
+$env:GIT_TERMINAL_PROMPT = "0"
+$env:GCM_INTERACTIVE = "never"
+$cred = ("protocol=https`nhost=github.com`n`n" | git credential fill) -split "`n"
+$tok = ($cred | Where-Object { $_ -like "password=*" }) -replace "^password=", ""
+if (-not $tok) { throw "no stored github credential" }
+$h = @{ Authorization = "Bearer $tok"; Accept = "application/vnd.github+json"; "User-Agent" = "SteamP2PInfo-release" }
+$notes = @"
+Fluent UI redesign (WPF-UI): new FluentWindow shell with Session/Config pages, peer cards with Steam avatars, WPF-UI dialogs, aligned overlay columns.
+Behavior is unchanged: same attach flow, IPC-log peer detection, ETW ping, overlay mechanism and config JSON format.
+Made by tremwil - Redesigned by zeer.
+
+Download the ZIP below and extract it anywhere, then run SteamP2PInfo.exe as administrator, start your game and click Attach Game. The Steam console command is shown by the app. The overlay works in windowed/borderless mode only.
+"@
+$body = @{ tag_name = "v2.0"; name = "v2.0 - Fluent UI redesign"; body = $notes; draft = $false; prerelease = $false } | ConvertTo-Json
+$rel = Invoke-RestMethod -Method Post -Uri "https://api.github.com/repos/ZEERDEER/SteamP2PInfo/releases" -Headers $h -Body $body -ContentType "application/json"
+foreach ($f in @("dist\SteamP2PInfo-V2.0.0.zip", "SteamP2PInfo\bin\Release\SteamP2PInfo.exe")) {
+    $name = [IO.Path]::GetFileName($f)
+    $up = "https://uploads.github.com/repos/ZEERDEER/SteamP2PInfo/releases/$($rel.id)/assets?name=$name"
+    Invoke-RestMethod -Method Post -Uri $up -Headers $h -InFile $f -ContentType "application/octet-stream"
+}
+(Invoke-RestMethod -Uri "https://api.github.com/repos/ZEERDEER/SteamP2PInfo/releases/latest" -Headers $h).assets | Select-Object name, size, browser_download_url
+```
+
+Expected: release `v2.0` with two assets (`SteamP2PInfo-V2.0.0.zip`, `SteamP2PInfo.exe`) and their download URLs.
+
+- [ ] **Step 5: Fallback if the API call fails**
+
+If the token is rejected or an upload errors, tell the user: the ZIP is at `dist\SteamP2PInfo-V2.0.0.zip`; publish via the web UI at `https://github.com/ZEERDEER/SteamP2PInfo/releases/new` — choose the already-pushed tag `v2.0`, paste the same notes, and attach the ZIP + exe.
