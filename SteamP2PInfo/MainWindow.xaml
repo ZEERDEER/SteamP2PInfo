@@ -8,6 +8,7 @@
         Width="800" Height="450" MinWidth="720" MinHeight="420"
         FontFamily="Segoe UI Variable Text, Segoe UI"
         WindowStartupLocation="CenterScreen"
+        ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica"
         WindowCornerPreference="Round">
     <Grid>

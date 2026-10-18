@@ -934,6 +934,7 @@ namespace SteamP2PInfo.Views
         Width="800" Height="450" MinWidth="720" MinHeight="420"
         FontFamily="Segoe UI Variable Text, Segoe UI"
         WindowStartupLocation="CenterScreen"
+        ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica"
         WindowCornerPreference="Round">
     <Grid>
@@ -1777,7 +1778,6 @@ git commit -m "feat: Fluent config cards, WPF-UI controls, ping color preview, n
         Width="400" Height="480"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
-        WindowBackdropType="Mica"
         WindowCornerPreference="Round">
     <Grid Margin="16">
         <Grid.RowDefinitions>
@@ -2345,3 +2345,8 @@ Expected: release `v2.0` with two assets (`SteamP2PInfo-V2.0.0.zip`, `SteamP2PIn
 - [x] **Step 5: Fallback if the API call fails**
 
 If the token is rejected or an upload errors, tell the user: the ZIP is at `dist\SteamP2PInfo-V2.0.0.zip`; publish via the web UI at `https://github.com/ZEERDEER/SteamP2PInfo/releases/new` — choose the already-pushed tag `v2.0`, paste the same notes, and attach the ZIP + exe.
+
+
+---
+
+**Post-release fix (2026-10-18):** the released v2.0 crashed at startup on the first user test: `Wpf.Ui.Controls.FluentWindow` (4.3.0) throws `InvalidOperationException: Cannot apply backdrop effect if ExtendsContentIntoTitleBar is false` when `WindowBackdropType="Mica"` is set without `ExtendsContentIntoTitleBar`. Fix: `MainWindow.xaml` gained `ExtendsContentIntoTitleBar="True"` (its `ui:TitleBar` supplies the caption and system buttons); `WindowSelectDialog.xaml` dropped `WindowBackdropType="Mica"` (it keeps normal window chrome, corner preference stays). Debug and Release were rebuilt, the `dist` ZIP recreated, `master` pushed, the `v2.0` tag re-pointed at the fix, and the GitHub release assets replaced.
