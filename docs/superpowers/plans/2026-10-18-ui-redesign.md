@@ -37,7 +37,7 @@ Expected success line: `SteamP2PInfo -> ...\SteamP2PInfo\bin\Debug\SteamP2PInfo.
 | `SteamP2PInfo/Dialogs.cs` | WPF-UI MessageBox wrappers (error, copy-command, AppId prompt, update notice) |
 | `SteamP2PInfo/Config/ConfigUIBuilder.cs` | Renders settings cards/rows (rewritten, still attribute-driven) |
 | `SteamP2PInfo/Config/ConfigPingColorsPreviewAttribute.cs` | Read-only ping-color chips row (new) |
-| `SteamP2PInfo/Config/ColorStringConverter.cs` | string `#AARRGGBB` ↔ `System.Windows.Media.Color` (new) |
+| `SteamP2PInfo/Controls/ColorBox.cs` | Hex-color TextBox with live tint (new; WPF-UI 4.3.0 ships no usable color picker) |
 | `SteamP2PInfo/Config/{ConfigBindingElement,ConfigCategory,ConfigEnumComboBox,ConfigFontSelector}Attribute.cs` | Fluent control types / card rendering |
 | `SteamP2PInfo/Config/{GameConfig,OverlayConfig}.cs` | Attribute type args updated; BannerFormat default changed |
 | `SteamP2PInfo/WindowSelectDialog.xaml(.cs)` | Fluent picker with search |
@@ -1350,36 +1350,73 @@ git commit -m "feat: Fluent shell (FluentWindow + NavigationView), SessionView a
 - Modify: `SteamP2PInfo/Config/ConfigEnumComboBoxAttribute.cs`
 - Modify: `SteamP2PInfo/Config/ConfigFontSelectorAttribute.cs`
 - Create: `SteamP2PInfo/Config/ConfigPingColorsPreviewAttribute.cs`
-- Create: `SteamP2PInfo/Config/ColorStringConverter.cs`
+- Create: `SteamP2PInfo/Controls/ColorBox.cs`
 - Modify: `SteamP2PInfo/Config/GameConfig.cs`, `SteamP2PInfo/Config/OverlayConfig.cs`
 - Modify: `SteamP2PInfo/SteamP2PInfo.csproj`
 
-- [ ] **Step 1: Create `SteamP2PInfo/Config/ColorStringConverter.cs`**
+- [ ] **Step 1: Create `SteamP2PInfo/Controls/ColorBox.cs`**
+
+`Wpf.Ui.Controls.ColorPicker` in 4.3.0 was verified by reflection to declare **no members at all** (no properties, events, or fields — an empty `Control` shell), so it cannot edit a color. The approved design spec (§5.1) already allows this fallback: edit the hex string directly in a self-tinting TextBox.
 
 ```csharp
-using System;
-using System.Globalization;
-using System.Windows.Data;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 
-namespace SteamP2PInfo.Config
+namespace SteamP2PInfo.Controls
 {
-    /// <summary>Config color string ("#AARRGGBB") and System.Windows.Media.Color.</summary>
-    [ValueConversion(typeof(string), typeof(Color))]
-    public class ColorStringConverter : IValueConverter
+    /// <summary>
+    /// Hex color editor for the config UI: a TextBox holding a "#AARRGGBB" (or "#RRGGBB") string
+    /// that tints itself to the parsed color. The value round-trips as the same string the config
+    /// JSON stores, so no value converter is involved.
+    /// </summary>
+    public class ColorBox : TextBox
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        private static readonly Brush InvalidBorder = new SolidColorBrush(Color.FromRgb(0xC4, 0x2B, 0x1C));
+
+        public ColorBox()
         {
-            if (value is string s && !string.IsNullOrEmpty(s))
-            {
-                try { return (Color)ColorConverter.ConvertFromString(s); }
-                catch { }
-            }
-            return Colors.White;
+            MinWidth = 120;
+            FontFamily = new FontFamily("Consolas");
+            ApplyPreview();
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => value is Color color ? color.ToString() : null;
+        protected override void OnTextChanged(TextChangedEventArgs e)
+        {
+            base.OnTextChanged(e);
+            ApplyPreview();
+        }
+
+        private void ApplyPreview()
+        {
+            if (TryParse(Text, out Color color))
+            {
+                BorderBrush = new SolidColorBrush(color);
+                Background = new SolidColorBrush(Color.FromArgb(36, color.R, color.G, color.B));
+            }
+            else
+            {
+                BorderBrush = InvalidBorder;
+                Background = Brushes.Transparent;
+            }
+        }
+
+        private static bool TryParse(string text, out Color color)
+        {
+            color = Colors.White;
+            if (string.IsNullOrWhiteSpace(text))
+                return false;
+
+            try
+            {
+                color = (Color)ColorConverter.ConvertFromString(text.Trim());
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }
 ```
@@ -1618,7 +1655,15 @@ namespace SteamP2PInfo.Config
 
 - [ ] **Step 6: Update `SteamP2PInfo/Config/GameConfig.cs` attribute arguments**
 
-Replace `using MahApps.Metro.Controls;` with `using Wpf.Ui.Controls;`. Every `[ConfigBindingElement("...", typeof(ToggleSwitch), "IsOnProperty", ...)]` stays valid against the WPF-UI `ToggleSwitch` (it also has `OnContent`/`OffContent` and `IsOnProperty`). No further changes in this file.
+Replace `using MahApps.Metro.Controls;` with `using Wpf.Ui.Controls;`. Then fix the toggle DP name: WPF-UI's `ToggleSwitch` derives from `ToggleButton`, and its state DP is **`IsCheckedProperty`** — there is no `IsOnProperty` in 4.3.0 (verified by reflection). `OnContent`/`OffContent` do exist, so leave those UIElementProperties alone. Change the DP name in every toggle attribute in both files:
+
+```bash
+sed -i 's/"IsOnProperty"/"IsCheckedProperty"/g' SteamP2PInfo/Config/GameConfig.cs SteamP2PInfo/Config/OverlayConfig.cs
+grep -rn "IsOnProperty" SteamP2PInfo/Config/ || echo "OK: zero hits"
+grep -c "IsCheckedProperty" SteamP2PInfo/Config/GameConfig.cs
+```
+
+Expected: no `IsOnProperty` hits; 5 hits in `GameConfig.cs` (its five toggles).
 
 - [ ] **Step 7: Update `SteamP2PInfo/Config/OverlayConfig.cs`**
 
@@ -1627,7 +1672,7 @@ Replace `using MahApps.Metro.Controls;` with `using Wpf.Ui.Controls;` and update
 1. `Hotkey`: already migrated to the custom control in Task 3 — verify it reads exactly `[ConfigBindingElement("Overlay Hotkey", typeof(SteamP2PInfo.Controls.HotKeyBox), "ValueProperty", Tooltip: "Hotkey to show/hide the overlay.")]` and change nothing here.
 2. `XOffset` / `YOffset`: `typeof(NumberBox)`, `"ValueProperty"`, with `UIElementProperties: new object[] { new object[] { "Minimum", 0d }, new object[] { "Maximum", 1d } }` (drop the MahApps-only `Interval`/`ParsingNumberStyle`/`StringFormat` entries).
 3. `StrokeWidth`: `typeof(NumberBox)`, `"ValueProperty"`, with `UIElementProperties: new object[] { new object[] { "Minimum", 0d } }`.
-4. `TextColor` / `StrokeColor`: `[ConfigBindingElement("Text Color", typeof(ColorPicker), "SelectedColorProperty", Tooltip: "...", ValueConverter: typeof(ColorStringConverter))]` and the same for Stroke Color. (If `SelectedColorProperty` is not the actual DP name, the compiler error will name the real one — adjust and rebuild.)
+4. `TextColor` / `StrokeColor`: replace `typeof(ColorPicker), "SelectedColorProperty"` with `typeof(SteamP2PInfo.Controls.ColorBox), "TextProperty"` and **remove** the `ValueConverter: typeof(ColorStringConverter)` argument — `ColorBox` binds the inherited `TextBox.TextProperty` directly, and both the config value and the control's text are `"#AARRGGBB"` strings. Same change for Stroke Color.
 5. `BannerFormat` default value: change
 ```csharp
         public string BannerFormat { get; set; } = "[{time:HH:mm:ss}] SteamP2PInfo - by tremwil";
@@ -1650,7 +1695,7 @@ No change expected — `RebuildEditor` already calls the new `CreateConfigEditor
 - [ ] **Step 9: Add new files to csproj**
 
 ```xml
-    <Compile Include="Config\ColorStringConverter.cs" />
+    <Compile Include="Controls\ColorBox.cs" />
     <Compile Include="Config\ConfigPingColorsPreviewAttribute.cs" />
 ```
 
@@ -2135,7 +2180,7 @@ git commit -m "feat: app icon (dark circle + accent network glyph)"
 Apply these edits:
 1. Find the UI-stack mention (`grep -n "MahApps" CLAUDE.md`) and replace that Architecture sentence with:
 ```
-UI framework is WPF-UI 4.3.0 (FluentWindow + TitleBar + NavigationView; the app runs dark-only with `ThemesDictionary Theme="Dark"`). The main window hosts two views in `Views/`: `SessionView` (peer cards bound to `ObservableCollection<SteamPeerBase>`, avatars via `SteamAvatar`, update banner) and `ConfigView` (STEAM card + generated settings cards). Config controls come from WPF-UI (ToggleSwitch, NumberBox, ColorPicker) plus a custom `Controls/HotKeyBox` (int encoding `vk | mods << 8`, same as the config JSON). Dialogs go through `Dialogs.cs` (WPF-UI `MessageBox`).
+UI framework is WPF-UI 4.3.0 (FluentWindow + TitleBar + NavigationView; the app runs dark-only with `ThemesDictionary Theme="Dark"`). The main window hosts two views in `Views/`: `SessionView` (peer cards bound to `ObservableCollection<SteamPeerBase>`, avatars via `SteamAvatar`, update banner) and `ConfigView` (STEAM card + generated settings cards). Config controls come from WPF-UI (`ToggleSwitch` — its state DP is `IsCheckedProperty` — and `NumberBox`) plus custom `Controls/HotKeyBox` (int encoding `vk | mods << 8`, same as the config JSON) and `Controls/ColorBox` (hex string with live tint; WPF-UI 4.3.0 ships no usable color picker). Dialogs go through `Dialogs.cs` (WPF-UI `MessageBox`).
 ```
 2. In **Build**, after the "Known-benign warnings" paragraph, add: "`WPF-UI` restores from NuGet like the other packages; the Release post-build deletes `*.config` only if no binding redirects are needed (see `build.targets`)."
 3. In **Gotchas**, remove the bullet mentioning MahApps dialogs if present; adjust the bullet about `ILRepack`/`Directory.builds.targets` unchanged.
