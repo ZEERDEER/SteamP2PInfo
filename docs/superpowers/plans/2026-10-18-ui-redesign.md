@@ -1810,10 +1810,9 @@ namespace SteamP2PInfo
 
         private WindowInfo GetSelected()
         {
-            if (WindowListBox.SelectedItem is WindowInfo info)
-                return info;
-            int index = WindowListBox.SelectedIndex;
-            return index >= 0 && index < windows.Count ? windows[index] : null;
+            // ItemsSource is always the filtered list, so SelectedItem is the only correct source:
+            // never index into `windows` with the ListBox's index (that index refers to the filtered view).
+            return WindowListBox.SelectedItem as WindowInfo;
         }
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
