@@ -51,6 +51,8 @@ Expected success line: `SteamP2PInfo -> ...\SteamP2PInfo\bin\Debug\SteamP2PInfo.
 
 ---
 
+> Note: on this machine's MSBuild (VS 18.6.3) the `-v:m` summary block is sometimes omitted; when the expected `0 Error(s)` line does not appear, trust the process exit code or rerun with `-clp:Summary`.
+
 ### Task 1: Housekeeping — commit pending files
 
 **Files:**
@@ -142,7 +144,7 @@ git commit -m "build: add WPF-UI 4.3.0 dependency (keeps MahApps temporarily)"
 - Modify: `SteamP2PInfo/HotkeyManager.cs`, `SteamP2PInfo/Config/OverlayConfig.cs`, `SteamP2PInfo/MainWindow.xaml`
 - Modify: `SteamP2PInfo/SteamP2PInfo.csproj`
 
-- [ ] **Step 1: Create `SteamP2PInfo/Controls/HotKeyBox.cs`**
+- [x] **Step 1: Create `SteamP2PInfo/Controls/HotKeyBox.cs`**
 
 ```csharp
 using System.Collections.Generic;
@@ -253,11 +255,11 @@ namespace SteamP2PInfo.Controls
 }
 ```
 
-- [ ] **Step 2: Trim `SteamP2PInfo/HotkeyManager.cs`**
+- [x] **Step 2: Trim `SteamP2PInfo/HotkeyManager.cs`**
 
 Remove `using MahApps.Metro.Controls;` and delete the `AddHotkey(IntPtr hWindow, Func<HotKey> getter, Action handler)` overload (the whole method, including its local `iget()` function). Keep everything else, including `AddHotkey(IntPtr hWindow, Func<int> getter, Action handler)` which `MainWindow` uses.
 
-- [ ] **Step 3: Replace the converter's two remaining references, then delete the file and its csproj entry**
+- [x] **Step 3: Replace the converter's two remaining references, then delete the file and its csproj entry**
 
 `HotkeyConverter` is referenced in exactly two places (verified with `grep -rn "HotkeyConverter" SteamP2PInfo/ --include=*.cs --include=*.xaml`). Remove both **before** deleting the file, or the build breaks:
 
@@ -287,7 +289,7 @@ In `SteamP2PInfo/SteamP2PInfo.csproj`, remove the line `<Compile Include="Hotkey
     <Compile Include="Controls\HotKeyBox.cs" />
 ```
 
-- [ ] **Step 4: Build**
+- [x] **Step 4: Build**
 
 ```bash
 "D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -p:Configuration=Debug -v:m
@@ -295,7 +297,7 @@ In `SteamP2PInfo/SteamP2PInfo.csproj`, remove the line `<Compile Include="Hotkey
 
 Expected: `0 Error(s)`. Both `HotkeyConverter` references were removed in Step 3, so the build should not fail on the missing type — if it does, find leftovers with `grep -rn "HotkeyConverter" SteamP2PInfo/ --include=*.cs --include=*.xaml` and remove them.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
