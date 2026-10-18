@@ -1383,7 +1383,7 @@ git commit -m "feat: Fluent shell (FluentWindow + NavigationView), SessionView a
 - Modify: `SteamP2PInfo/Config/GameConfig.cs`, `SteamP2PInfo/Config/OverlayConfig.cs`
 - Modify: `SteamP2PInfo/SteamP2PInfo.csproj`
 
-- [ ] **Step 1: Create `SteamP2PInfo/Controls/ColorBox.cs`**
+- [x] **Step 1: Create `SteamP2PInfo/Controls/ColorBox.cs`**
 
 `Wpf.Ui.Controls.ColorPicker` in 4.3.0 was verified by reflection to declare **no members at all** (no properties, events, or fields — an empty `Control` shell), so it cannot edit a color. The approved design spec (§5.1) already allows this fallback: edit the hex string directly in a self-tinting TextBox.
 
@@ -1450,7 +1450,7 @@ namespace SteamP2PInfo.Controls
 }
 ```
 
-- [ ] **Step 2: Create `SteamP2PInfo/Config/ConfigPingColorsPreviewAttribute.cs`**
+- [x] **Step 2: Create `SteamP2PInfo/Config/ConfigPingColorsPreviewAttribute.cs`**
 
 ```csharp
 using System;
@@ -1514,7 +1514,7 @@ namespace SteamP2PInfo.Config
 }
 ```
 
-- [ ] **Step 3: Rewrite `SteamP2PInfo/Config/ConfigCategoryAttribute.cs`** (renders a settings card containing the nested config's rows)
+- [x] **Step 3: Rewrite `SteamP2PInfo/Config/ConfigCategoryAttribute.cs`** (renders a settings card containing the nested config's rows)
 
 ```csharp
 using System;
@@ -1550,7 +1550,7 @@ namespace SteamP2PInfo.Config
 }
 ```
 
-- [ ] **Step 4: Rewrite `SteamP2PInfo/Config/ConfigUIBuilder.cs`**
+- [x] **Step 4: Rewrite `SteamP2PInfo/Config/ConfigUIBuilder.cs`**
 
 ```csharp
 using System;
@@ -1674,7 +1674,7 @@ namespace SteamP2PInfo.Config
 }
 ```
 
-- [ ] **Step 5: Small updates to the remaining attribute files**
+- [x] **Step 5: Small updates to the remaining attribute files**
 
 `ConfigBindingElementAttribute.cs` and `ConfigEnumComboBoxAttribute.cs` and `ConfigFontSelectorAttribute.cs` keep their current logic. Apply only these tweaks:
 
@@ -1691,7 +1691,7 @@ namespace SteamP2PInfo.Config
 
 `FieldInfo`/`InvalidOperationException` need `System.Reflection`/`System` (both already imported). No other behavior change.
 
-- [ ] **Step 6: Update `SteamP2PInfo/Config/GameConfig.cs` attribute arguments**
+- [x] **Step 6: Update `SteamP2PInfo/Config/GameConfig.cs` attribute arguments**
 
 Replace `using MahApps.Metro.Controls;` with `using Wpf.Ui.Controls;`. Then fix the toggle DP name: WPF-UI's `ToggleSwitch` derives from `ToggleButton`, and its state DP is **`IsCheckedProperty`** — there is no `IsOnProperty` in 4.3.0 (verified by reflection). `OnContent`/`OffContent` do exist, so leave those UIElementProperties alone. Change the DP name in every toggle attribute in both files:
 
@@ -1705,7 +1705,7 @@ Expected: no `IsOnProperty` hits; 5 hits in `GameConfig.cs` (its five toggles).
 
 Also in `GameConfig.cs`: change the overlay property's `[ConfigCategory("Overlay Config")]` to `[ConfigCategory("OVERLAY")]`, so the card header matches the design spec's group label.
 
-- [ ] **Step 7: Update `SteamP2PInfo/Config/OverlayConfig.cs`**
+- [x] **Step 7: Update `SteamP2PInfo/Config/OverlayConfig.cs`**
 
 Replace `using MahApps.Metro.Controls;` with `using Wpf.Ui.Controls;` and update attribute arguments:
 
@@ -1728,18 +1728,18 @@ to
         public List<PingColorRange> PingColors { get; set; } = new List<PingColorRange>()
 ```
 
-- [ ] **Step 8: Update `SteamP2PInfo/Views/ConfigView.xaml` if needed**
+- [x] **Step 8: Update `SteamP2PInfo/Views/ConfigView.xaml` if needed**
 
 No change expected — `RebuildEditor` already calls the new `CreateConfigEditor` signature. `ConfigUIBuilder.CreateConfigEditor` returns `StackPanel`, matching `generatedEditor.Children.Add(...)`.
 
-- [ ] **Step 9: Add new files to csproj**
+- [x] **Step 9: Add new files to csproj**
 
 ```xml
     <Compile Include="Controls\ColorBox.cs" />
     <Compile Include="Config\ConfigPingColorsPreviewAttribute.cs" />
 ```
 
-- [ ] **Step 10: Build**
+- [x] **Step 10: Build**
 
 ```bash
 "D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -p:Configuration=Debug -v:m
@@ -1747,11 +1747,11 @@ No change expected — `RebuildEditor` already calls the new `CreateConfigEditor
 
 Expected: `0 Error(s)`.
 
-- [ ] **Step 11: MANUAL — config page check**
+- [x] **Step 11: MANUAL — config page check**
 
 Run the app, attach to a game if convenient (or just open Config before attaching to check the STEAM card). After attach: GENERAL and OVERLAY cards appear; toggles switch; the hotkey box shows "F2" after clicking and pressing F2; color rows are hex `ColorBox` inputs that tint to the parsed color (garbage input shows a red border); editing anything then closing the app updates `config\{process}.json` (check the `overlay.hotkey`, `overlay.banner_format` fields).
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add -A
@@ -2024,22 +2024,7 @@ grep -rniE "mahapps|controlzex" --include="*.cs" --include="*.xaml" --include="*
 grep -rn "Microsoft.VisualBasic" --include="*.cs" --include="*.csproj" SteamP2PInfo/ | grep -v obj/
 ```
 
-Expected: the first command matches only `packages.config` and `SteamP2PInfo.csproj`; the second matches only the `Microsoft.VisualBasic` reference line in `SteamP2PInfo.csproj` (its only consumer, `Interaction.InputBox`, was replaced in Task 4). If any `.cs`/`.xaml` hits remain, fix them first (they should have been handled in Tasks 3–7).
-
-- [ ] **Step 2: Remove the packages and references**
-
-1. `SteamP2PInfo/packages.config`: delete the `ControlzEx` and `MahApps.Metro` `<package>` lines.
-2. `SteamP2PInfo/SteamP2PInfo.csproj`: delete the `ControlzEx`, `MahApps.Metro` and `Microsoft.VisualBasic` `<Reference>` blocks (including the MahApps/ControlzEx `<HintPath>`s).
-3. Restore (prunes nothing but keeps packages dir consistent) and rebuild:
-
-```bash
-"D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -t:Restore -p:RestorePackagesConfig=true -v:m
-"D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -p:Configuration=Debug -v:m
-```
-
-Expected: `0 Error(s)`.
-
-Two dependency-workflow facts recorded during Task 2 (both verified there by measurement): (a) this `packages.config` restore does **not** resolve transitive dependencies — every assembly the app loads must be listed explicitly in both `packages.config` and the csproj, or a fresh clone will not build; (b) if you ever choose to bump the pinned `System.Runtime.CompilerServices.Unsafe` instead of using the Task 5 step-12 binding redirect, the correct package version is **6.1.2** — its assembly version is 6.0.3.0, which is what `Wpf.Ui` and `System.Memory` reference (there is no published package "6.0.3"). Rebuild afterwards and confirm the 18 MSB3277 warnings drop to 0.
+Expected: the first command matches only `packages\System.Runtime.CompilerServices.Unsafe.6.1.2\lib\net461\System.Runtime.CompilerServices.Unsafe.dll`, re-restore, rebuild, and confirm the Unsafe MSB3277 conflict disappears (the count drops from 18 to 0) and `bin\Debug\System.Runtime.CompilerServices.Unsafe.dll` reports assembly version 6.0.3.0.
 
 - [ ] **Step 3: Build Release and check the exe.config question**
 
@@ -2243,7 +2228,7 @@ UI framework is WPF-UI 4.3.0 (FluentWindow + TitleBar + NavigationView; the app 
 ls SteamP2PInfo/bin/Release/
 ```
 
-Expected: both builds with no errors (if the summary block is missing under `-v:m`, trust the exit code or add `-clp:Summary`); Release contains `SteamP2PInfo.exe`, `steam_api64.dll`, `Dia2Lib.dll`, `OSExtensions.dll`, `TraceReloggerLib.dll`, `amd64/`.
+Expected: both builds with no errors (if the summary block is missing under `-v:m`, trust the exit code or add `-clp:Summary`); Release contains `SteamP2PInfo.exe`, `SteamP2PInfo.exe.config` (only if Task 9 decided to ship it for binding redirects), `steam_api64.dll`, `Dia2Lib.dll`, `OSExtensions.dll`, `TraceReloggerLib.dll`, `amd64/`.
 
 - [ ] **Step 4: Package the release ZIP**
 
