@@ -511,7 +511,7 @@ This is the big flip. After this task the app uses the Fluent shell; the Config 
 - Create: `SteamP2PInfo/SteamAvatar.cs`
 - Modify: `SteamP2PInfo/SteamP2PInfo.csproj`
 
-- [ ] **Step 1: Rewrite `SteamP2PInfo/App.xaml`**
+- [x] **Step 1: Rewrite `SteamP2PInfo/App.xaml`**
 
 ```xml
 <Application x:Class="SteamP2PInfo.App"
@@ -556,7 +556,7 @@ namespace SteamP2PInfo
 
 Note (found by the Task 4 quality review): these two `ui:` dictionaries are also what give `Wpf.Ui.Controls.MessageBox` its template. Until they load, Task 4's dialogs render without their buttons, so this step is what makes the attach flow's AppId prompt and the console "Copy Command" dialog usable. No commit between Task 4 and this step is runnable on its own - do not runtime-verify one.
 
-- [ ] **Step 2: Create `SteamP2PInfo/Converters/UiConverters.cs`**
+- [x] **Step 2: Create `SteamP2PInfo/Converters/UiConverters.cs`**
 
 ```csharp
 using System;
@@ -648,7 +648,7 @@ namespace SteamP2PInfo.Converters
 }
 ```
 
-- [ ] **Step 3: Create `SteamP2PInfo/SteamAvatar.cs`**
+- [x] **Step 3: Create `SteamP2PInfo/SteamAvatar.cs`**
 
 ```csharp
 using System.Collections.Generic;
@@ -700,7 +700,7 @@ namespace SteamP2PInfo
 
 (If avatars render with swapped red/blue, change `PixelFormats.Bgra32` to `Rgba32` — Steam's byte order differs by platform.)
 
-- [ ] **Step 4: Create `SteamP2PInfo/Views/SessionView.xaml`**
+- [x] **Step 4: Create `SteamP2PInfo/Views/SessionView.xaml`**
 
 ```xml
 <UserControl x:Class="SteamP2PInfo.Views.SessionView"
@@ -796,7 +796,7 @@ namespace SteamP2PInfo
 </UserControl>
 ```
 
-- [ ] **Step 5: Create `SteamP2PInfo/Views/SessionView.xaml.cs`**
+- [x] **Step 5: Create `SteamP2PInfo/Views/SessionView.xaml.cs`**
 
 ```csharp
 using System;
@@ -854,7 +854,7 @@ namespace SteamP2PInfo.Views
 }
 ```
 
-- [ ] **Step 6: Create `SteamP2PInfo/Views/ConfigView.xaml`**
+- [x] **Step 6: Create `SteamP2PInfo/Views/ConfigView.xaml`**
 
 ```xml
 <UserControl x:Class="SteamP2PInfo.Views.ConfigView"
@@ -890,7 +890,7 @@ namespace SteamP2PInfo.Views
 </UserControl>
 ```
 
-- [ ] **Step 7: Create `SteamP2PInfo/Views/ConfigView.xaml.cs`**
+- [x] **Step 7: Create `SteamP2PInfo/Views/ConfigView.xaml.cs`**
 
 ```csharp
 using System.Windows.Controls;
@@ -922,7 +922,7 @@ namespace SteamP2PInfo.Views
 
 (At this point `ConfigUIBuilder.CreateConfigEditor` still returns the old MahApps-based grid; it will be replaced in Task 6. The call signature is already the final one.)
 
-- [ ] **Step 8: Rewrite `SteamP2PInfo/MainWindow.xaml`**
+- [x] **Step 8: Rewrite `SteamP2PInfo/MainWindow.xaml`**
 
 ```xml
 <ui:FluentWindow x:Class="SteamP2PInfo.MainWindow"
@@ -977,7 +977,7 @@ namespace SteamP2PInfo.Views
 </ui:FluentWindow>
 ```
 
-- [ ] **Step 9: Rewrite `SteamP2PInfo/MainWindow.xaml.cs`**
+- [x] **Step 9: Rewrite `SteamP2PInfo/MainWindow.xaml.cs`**
 
 ```csharp
 using System;
@@ -1035,9 +1035,9 @@ namespace SteamP2PInfo
             sessionView.SetPeerSource(peers);
             sessionView.AttachRequested += AttachGame;
 
-            navigationView.SelectionChanged += (s, e) => UpdateRootContent();
-            navigationView.SelectedItem = navSession;
-            UpdateRootContent();
+            navSession.Click += (s, e) => SelectPane(navSession);
+            navConfig.Click += (s, e) => SelectPane(navConfig);
+            SelectPane(navSession);
 
             Title = "Steam P2P Info " + VersionCheck.CurrentVersion;
 
@@ -1063,9 +1063,14 @@ namespace SteamP2PInfo
             });
         }
 
-        private void UpdateRootContent()
+        private void SelectPane(Wpf.Ui.Controls.NavigationViewItem item)
         {
-            rootContent.Content = ReferenceEquals(navigationView.SelectedItem, navConfig) ? (object)configView : sessionView;
+            // NavigationView.SelectedItem has a non-public setter and only changes through its own
+            // page-navigation pipeline. With the pane used standalone, IsActive is the public
+            // selection state; the item's inherited Click event drives the switch.
+            navSession.IsActive = ReferenceEquals(item, navSession);
+            navConfig.IsActive = ReferenceEquals(item, navConfig);
+            rootContent.Content = ReferenceEquals(item, navConfig) ? (object)configView : sessionView;
         }
 
         private void UpdateBadge_Click(object sender, RoutedEventArgs e)
@@ -1308,7 +1313,7 @@ namespace SteamP2PInfo
 
 Notes: the old `headerFmt_MouseDoubleClick` and `webLink_RequestNavigate` handlers are intentionally dropped (their XAML elements no longer exist); the old `dataGridSession_DoubleClick` logic now lives in `SessionView.PeerCard_MouseDoubleClick`.
 
-- [ ] **Step 10: Update csproj items**
+- [x] **Step 10: Update csproj items**
 
 Add to `SteamP2PInfo/SteamP2PInfo.csproj`:
 
@@ -1331,7 +1336,7 @@ Add to `SteamP2PInfo/SteamP2PInfo.csproj`:
     </Page>
 ```
 
-- [ ] **Step 11: Build**
+- [x] **Step 11: Build**
 
 ```bash
 "D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -p:Configuration=Debug -v:m
@@ -1339,7 +1344,7 @@ Add to `SteamP2PInfo/SteamP2PInfo.csproj`:
 
 Expected: `0 Error(s)`. If `Symbol="Games24"` or `OpenPaneLength` does not exist, the error message lists valid alternatives — pick the nearest match (e.g. another 24px game/people icon) and rebuild.
 
-- [ ] **Step 12: MANUAL — run and check the Fluent shell**
+- [x] **Step 12: MANUAL — run and check the Fluent shell**
 
 Run `SteamP2PInfo/bin/Debug/SteamP2PInfo.exe`. Expected: dark Fluent window with title bar, left navigation with Session/Config, empty state with **Attach Game** button, bottom bar showing the credits **"Made by tremwil · Redesigned by zeer"**. Window should have rounded corners and a Mica backdrop. Config tab shows the STEAM card (the generated cards are still the old-styled ones until Task 6).
 
@@ -1356,7 +1361,7 @@ Known risk to watch here: `Wpf.Ui` references `System.Runtime.CompilerServices.U
   </runtime>
 ```
 
-- [ ] **Step 13: Commit**
+- [x] **Step 13: Commit**
 
 ```bash
 git add -A
@@ -1675,7 +1680,16 @@ namespace SteamP2PInfo.Config
 
 1. `ConfigEnumComboBoxAttribute`: change the ComboBox creation so it renders right-aligned and themed — no change needed to code (plain `ComboBox` is themed by `ControlsDictionary`); leave the file as is.
 2. `ConfigFontSelectorAttribute`: no code change needed (plain `Button` is themed; the `System.Windows.Forms.FontDialog` stays).
-3. `ConfigBindingElementAttribute`: add a guard where it resolves the target DependencyProperty by reflection. Today a wrong DP name throws a bare `NullReferenceException` the first time the config tab renders (hit twice during planning: MahApps `IsOnProperty` vs WPF-UI `IsCheckedProperty`, and the ColorPicker's non-existent `SelectedColorProperty`). Read the attribute's existing resolution code and make a missing field fail loudly: keep the same `GetField(..., BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)` call, but when it returns null throw an `InvalidOperationException` naming the DP string, the control type, and the option it belongs to (use the option name the attribute already holds). No other behavior change.
+3. `ConfigBindingElementAttribute`: add a guard where it resolves the target DependencyProperty by reflection. Today a wrong DP name throws a bare `NullReferenceException` the first time the config tab renders (hit twice during planning: MahApps `IsOnProperty` vs WPF-UI `IsCheckedProperty`, and the ColorPicker's non-existent `SelectedColorProperty`). In the constructor, replace the single `this.TargetProperty = ...GetValue(null);` assignment with:
+
+```csharp
+            FieldInfo dpField = UIElementType.GetField(TargetProperty, BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+            if (dpField == null)
+                throw new InvalidOperationException($"ConfigBindingElement: '{TargetProperty}' is not a public static field on {UIElementType.Name} (option '{OptionName}').");
+            this.TargetProperty = (DependencyProperty)dpField.GetValue(null);
+```
+
+`FieldInfo`/`InvalidOperationException` need `System.Reflection`/`System` (both already imported). No other behavior change.
 
 - [ ] **Step 6: Update `SteamP2PInfo/Config/GameConfig.cs` attribute arguments**
 
@@ -1689,13 +1703,15 @@ grep -c "IsCheckedProperty" SteamP2PInfo/Config/GameConfig.cs
 
 Expected: no `IsOnProperty` hits; 5 hits in `GameConfig.cs` (its five toggles).
 
+Also in `GameConfig.cs`: change the overlay property's `[ConfigCategory("Overlay Config")]` to `[ConfigCategory("OVERLAY")]`, so the card header matches the design spec's group label.
+
 - [ ] **Step 7: Update `SteamP2PInfo/Config/OverlayConfig.cs`**
 
 Replace `using MahApps.Metro.Controls;` with `using Wpf.Ui.Controls;` and update attribute arguments:
 
 1. `Hotkey`: already migrated to the custom control in Task 3 — verify it reads exactly `[ConfigBindingElement("Overlay Hotkey", typeof(SteamP2PInfo.Controls.HotKeyBox), "ValueProperty", Tooltip: "Hotkey to show/hide the overlay.")]` and change nothing here.
-2. `XOffset` / `YOffset`: `typeof(NumberBox)`, `"ValueProperty"`, with `UIElementProperties: new object[] { new object[] { "Minimum", 0d }, new object[] { "Maximum", 1d } }` (drop the MahApps-only `Interval`/`ParsingNumberStyle`/`StringFormat` entries).
-3. `StrokeWidth`: `typeof(NumberBox)`, `"ValueProperty"`, with `UIElementProperties: new object[] { new object[] { "Minimum", 0d } }`.
+2. `XOffset` / `YOffset`: `typeof(NumberBox)`, `"ValueProperty"`, with `UIElementProperties: new object[] { new object[] { "Minimum", 0d }, new object[] { "Maximum", 1d }, new object[] { "SmallChange", 0.005d }, new object[] { "MaxDecimalPlaces", 3 } }`. The values are fractions of the window width (`XOffset` default 0.025), so: MahApps' `Interval` maps to WPF-UI's `SmallChange` (without it the spin buttons step the whole 0..1 range at once), `StringFormat "F3"` maps to `MaxDecimalPlaces = 3`, and `ParsingNumberStyle` has no equivalent (drop it).
+3. `StrokeWidth`: `typeof(NumberBox)`, `"ValueProperty"`, with `UIElementProperties: new object[] { new object[] { "Minimum", 0d }, new object[] { "SmallChange", 0.5d }, new object[] { "MaxDecimalPlaces", 1 } }` (same MahApps-to-WPF-UI mapping as the offsets: `Interval 0.5` -> `SmallChange`, `StringFormat "F1"` -> `MaxDecimalPlaces`).
 4. `TextColor` / `StrokeColor`: replace `typeof(ColorPicker), "SelectedColorProperty"` with `typeof(SteamP2PInfo.Controls.ColorBox), "TextProperty"` and **remove** the `ValueConverter: typeof(ColorStringConverter)` argument — `ColorBox` binds the inherited `TextBox.TextProperty` directly, and both the config value and the control's text are `"#AARRGGBB"` strings. Same change for Stroke Color.
 5. `BannerFormat` default value: change
 ```csharp
@@ -1733,7 +1749,7 @@ Expected: `0 Error(s)`.
 
 - [ ] **Step 11: MANUAL — config page check**
 
-Run the app, attach to a game if convenient (or just open Config before attaching to check the STEAM card). After attach: GENERAL and OVERLAY cards appear; toggles switch; the hotkey box shows "F2" after clicking and pressing F2; color rows open the WPF-UI color picker; editing anything then closing the app updates `config\{process}.json` (check the `overlay.hotkey`, `overlay.banner_format` fields).
+Run the app, attach to a game if convenient (or just open Config before attaching to check the STEAM card). After attach: GENERAL and OVERLAY cards appear; toggles switch; the hotkey box shows "F2" after clicking and pressing F2; color rows are hex `ColorBox` inputs that tint to the parsed color (garbage input shows a red border); editing anything then closing the app updates `config\{process}.json` (check the `overlay.hotkey`, `overlay.banner_format` fields).
 
 - [ ] **Step 12: Commit**
 
