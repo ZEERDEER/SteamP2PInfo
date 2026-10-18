@@ -1,17 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
+using System.Windows.Media;
+using Wpf.Ui.Appearance;
 
 namespace SteamP2PInfo
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
     public partial class App : Application
     {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+
+            ApplicationThemeManager.Apply(ApplicationTheme.Dark);
+            ApplicationAccentColorManager.Apply((Color)ColorConverter.ConvertFromString("#4CC2FF"), ApplicationTheme.Dark);
+        }
     }
 }

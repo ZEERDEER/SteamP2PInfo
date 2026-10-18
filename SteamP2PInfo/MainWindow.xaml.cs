@@ -1,27 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Windows.Threading;
-using MahApps.Metro.Controls;
-using System.IO;
 using Steamworks;
-using System.Security.Permissions;
-using System.Media;
 using SteamP2PInfo.Config;
+using SteamP2PInfo.Views;
 
 namespace SteamP2PInfo
 {
@@ -36,8 +24,12 @@ namespace SteamP2PInfo
         private int timerTicks = 0;
         private int overlayHotkey = 0;
         private int previousPeersAmount = 0;
+        private string updateUrl;
 
         private const string STEAM_COMMAND = "log_ipc \"BeginAuthSession,EndAuthSession,LeaveLobby,SendClanChatMessage\"";
+
+        private readonly SessionView sessionView = new SessionView();
+        private readonly ConfigView configView = new ConfigView();
 
         private WindowSelectDialog.WindowInfo wInfo;
 
@@ -58,7 +50,13 @@ namespace SteamP2PInfo
             Closing += MainWindow_Closed;
 
             peers = new ObservableCollection<SteamPeerBase>();
-            dataGridSession.DataContext = peers;
+            sessionView.SetPeerSource(peers);
+            sessionView.AttachRequested += AttachGame;
+
+            navSession.Click += (s, e) => SelectPane(navSession);
+            navConfig.Click += (s, e) => SelectPane(navConfig);
+            SelectPane(navSession);
+
             Title = "Steam P2P Info " + VersionCheck.CurrentVersion;
 
             timer = new Timer(Timer_Tick, null, Timeout.Infinite, Timeout.Infinite);
@@ -73,14 +71,30 @@ namespace SteamP2PInfo
                     {
                         Dispatcher.Invoke(() =>
                         {
-                            string url = "https://github.com/tremwil/SteamP2PInfo/releases/tag/" + v;
-                            linkUpdate.NavigateUri = new Uri(url);
-                            textUpdate.Text = string.Format("NEW VERSION ({0}), DOWNLOAD HERE", v);
-                            _ = Dialogs.ShowUpdateAvailable(this, v, new Uri(url));
+                            updateUrl = "https://github.com/tremwil/SteamP2PInfo/releases/tag/" + v;
+                            updateBadge.Content = $"Update {v} available";
+                            updateBadge.Visibility = Visibility.Visible;
+                            _ = Dialogs.ShowUpdateAvailable(this, v, new Uri(updateUrl));
                         });
                     }
                 }
             });
+        }
+
+        private void SelectPane(Wpf.Ui.Controls.NavigationViewItem item)
+        {
+            // NavigationView.SelectedItem has a non-public setter and only changes through its own
+            // page-navigation pipeline. With the pane used standalone, IsActive is the public
+            // selection state; the item's inherited Click event drives the switch.
+            navSession.IsActive = ReferenceEquals(item, navSession);
+            navConfig.IsActive = ReferenceEquals(item, navConfig);
+            rootContent.Content = ReferenceEquals(item, navConfig) ? (object)configView : sessionView;
+        }
+
+        private void UpdateBadge_Click(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(updateUrl))
+                Process.Start(new ProcessStartInfo(updateUrl));
         }
 
         private void Timer_Tick(object o)
@@ -100,8 +114,8 @@ namespace SteamP2PInfo
 
                 if ((timerTicks = (timerTicks + 1) % 6) == 0)
                 {
-                    // Rather not have the settings update on a loop, but 
-                    // Fody generated OnChange seems to break PropertyChanged 
+                    // Rather not have the settings update on a loop, but
+                    // Fody generated OnChange seems to break PropertyChanged
                     // for GameConfig. So do this for now.
                     GameConfig.Current?.Save();
                     SteamPeerManager.UpdatePeerList();
@@ -110,23 +124,16 @@ namespace SteamP2PInfo
                 peers.Clear();
                 foreach (SteamPeerBase p in SteamPeerManager.GetPeers())
                     peers.Add(p);
+                sessionView.UpdateStatus(peers.Count);
 
                 if (GameConfig.Current.PlaySoundOnNewSession)
                 {
                     if (peers.Count > 0 && previousPeersAmount == 0)
                     {
-                        SystemSounds.Beep.Play();
+                        System.Media.SystemSounds.Beep.Play();
                     }
                     previousPeersAmount = peers.Count;
                 }
-
-                // Update session info column sizes
-                foreach (var col in dataGridSession.Columns)
-                {
-                    col.Width = new DataGridLength(1, DataGridLengthUnitType.Pixel);
-                    col.Width = new DataGridLength(1, DataGridLengthUnitType.Auto);
-                }
-                dataGridSession.UpdateLayout();
 
                 // Update overlay column sizes
                 foreach (var col in overlay.dataGrid.Columns)
@@ -137,7 +144,7 @@ namespace SteamP2PInfo
                 overlay.dataGrid.UpdateLayout();
 
                 // Queue position update after the overlay has re-rendered
-                Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(overlay.UpdatePosition));
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle, new Action(overlay.UpdatePosition));
                 overlay.UpdateVisibility();
             });
         }
@@ -175,82 +182,67 @@ namespace SteamP2PInfo
             ETWPingMonitor.Stop();
         }
 
-
-        private void headerFmt_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        private async void AttachGame()
         {
-            Process.Start("https://docs.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings");
-        }
+            if (wInfo != null)
+                return;
 
-        private void webLink_RequestNavigate(object sender, RequestNavigateEventArgs e)
-        {
-            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri));
-            e.Handled = true;
-        }
+            WindowSelectDialog dialog = new WindowSelectDialog() { Owner = this };
+            if (dialog.ShowDialog() != true)
+                return;
 
-        private async void labelGameState_RequestNavigate(object sender, RequestNavigateEventArgs e)
-        {
-            if (wInfo == null)
+            GameConfig.LoadOrCreate(dialog.SelectedWindow.ProcessName);
+
+            if (!Directory.Exists(Path.GetDirectoryName(Settings.Default.SteamLogPath)))
             {
-                WindowSelectDialog dialog = new WindowSelectDialog() { Owner = this };
-                if (dialog.ShowDialog() == true)
-                {
-                    GameConfig.LoadOrCreate(dialog.SelectedWindow.ProcessName);
-
-                    if (!Directory.Exists(System.IO.Path.GetDirectoryName(Settings.Default.SteamLogPath)))
-                    {
-                        MessageBox.Show("Steam IPC log file directory does not exist. Please modify the config accordingly.", "Directory Not Found", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-
-                    if (GameConfig.Current.SteamAppId == 0)
-                    {
-                        int? result = await Dialogs.PromptAppId(this);
-                        if (result == null)
-                        {
-                            MessageBox.Show("Please input a valid number", "Input Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                            return;
-                        }
-                        GameConfig.Current.SteamAppId = result.Value;
-                    }
-
-                    Environment.SetEnvironmentVariable("SteamAppId", GameConfig.Current.SteamAppId.ToString());
-                    if (!SteamAPI.Init())
-                    {
-                        MessageBox.Show("Could not initialize Steam API. Make sure the provided AppId is valid!", "Steam API Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        GameConfig.Current.SteamAppId = 0;
-                        GameConfig.Current.Save();
-                        return;
-                    }
-
-                    wInfo = dialog.SelectedWindow;
-                    SteamPeerManager.Init();
-
-                    if(MustEnterSteamCommand())
-                        SteamConsoleHelper();
-
-                    HotkeyManager.RemoveHotkey(overlayHotkey);
-                    overlayHotkey = HotkeyManager.AddHotkey(wInfo.Handle, () => GameConfig.Current.OverlayConfig.Hotkey, () => GameConfig.Current.OverlayConfig.Enabled ^= true);
-
-                    overlay = new OverlayWindow(wInfo.Handle, wInfo.ProcessId, wInfo.ThreadId);
-                    overlay.dataGrid.DataContext = peers;
-                    if (!overlay.InstallMsgHook())
-                    {
-                        overlay.Close();
-                        MessageBox.Show("Failed to setup overlay message hook", "WINAPI Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        Close();
-                        return;
-                    }
-
-                    textGameState.Text = wInfo.Title;
-                    textGameState.Foreground = Brushes.LawnGreen;
-
-                    Grid configEditor = ConfigUIBuilder.CreateConfigEditor(GameConfig.Current);
-                    ConfigTab.Children.Add(configEditor);
-
-                    ETWPingMonitor.Start();
-                    timer.Change(0, 1000);
-                }
+                await Dialogs.ShowError(this, "Directory Not Found", "Steam IPC log file directory does not exist. Please modify the config accordingly.");
+                return;
             }
+
+            if (GameConfig.Current.SteamAppId == 0)
+            {
+                int? appId = await Dialogs.PromptAppId(this);
+                if (appId == null)
+                {
+                    await Dialogs.ShowError(this, "Input Error", "Please input a valid number");
+                    return;
+                }
+                GameConfig.Current.SteamAppId = appId.Value;
+            }
+
+            Environment.SetEnvironmentVariable("SteamAppId", GameConfig.Current.SteamAppId.ToString());
+            if (!SteamAPI.Init())
+            {
+                await Dialogs.ShowError(this, "Steam API Error", "Could not initialize Steam API. Make sure the provided AppId is valid!");
+                GameConfig.Current.SteamAppId = 0;
+                GameConfig.Current.Save();
+                return;
+            }
+
+            wInfo = dialog.SelectedWindow;
+            SteamPeerManager.Init();
+
+            if (MustEnterSteamCommand())
+                SteamConsoleHelper();
+
+            HotkeyManager.RemoveHotkey(overlayHotkey);
+            overlayHotkey = HotkeyManager.AddHotkey(wInfo.Handle, () => GameConfig.Current.OverlayConfig.Hotkey, () => GameConfig.Current.OverlayConfig.Enabled ^= true);
+
+            overlay = new OverlayWindow(wInfo.Handle, wInfo.ProcessId, wInfo.ThreadId);
+            overlay.dataGrid.DataContext = peers;
+            if (!overlay.InstallMsgHook())
+            {
+                overlay.Close();
+                await Dialogs.ShowError(this, "WINAPI Error", "Failed to setup overlay message hook");
+                Close();
+                return;
+            }
+
+            sessionView.ShowAttached(wInfo.Title);
+            configView.RebuildEditor(wInfo.Title);
+
+            ETWPingMonitor.Start();
+            timer.Change(0, 1000);
         }
 
         private bool MustEnterSteamCommand()
@@ -272,8 +264,8 @@ namespace SteamP2PInfo
             try
             {
                 ipcLogDate = File.GetLastWriteTime(Settings.Default.SteamLogPath);
-
-            } catch (Exception)
+            }
+            catch (Exception)
             {
                 return true;
             }
@@ -329,27 +321,8 @@ namespace SteamP2PInfo
                 }
                 catch (Exception e)
                 {
-                    MessageBox.Show($"Failed to copy command to clipboard. Please enter '{STEAM_COMMAND}' manually.\n\n {e}", "Write to Clipboard Failed!", MessageBoxButton.OK, MessageBoxImage.Error);
+                    await Dialogs.ShowError(this, "Write to Clipboard Failed!", $"Failed to copy command to clipboard. Please enter '{STEAM_COMMAND}' manually.\n\n {e}");
                 }
-            }
-        }
-
-        private void dataGridSession_DoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            DependencyObject dep = (DependencyObject)e.OriginalSource;
-            while ((dep != null) && !(dep is DataGridRow))
-            {
-                dep = VisualTreeHelper.GetParent(dep);
-            }
-            if (dep == null) return;
-
-            if (dep is DataGridRow)
-            {
-                DataGridRow row = dep as DataGridRow;
-                if (GameConfig.Current.OpenProfileInOverlay)
-                    SteamFriends.ActivateGameOverlayToUser("steamid", peers[row.GetIndex()].SteamID);
-                else
-                    Process.Start($"https://steamcommunity.com/profiles/{peers[row.GetIndex()].SteamID}");
             }
         }
     }

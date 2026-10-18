@@ -1,0 +1,91 @@
+<UserControl x:Class="SteamP2PInfo.Views.SessionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:conv="clr-namespace:SteamP2PInfo.Converters">
+    <UserControl.Resources>
+        <conv:HexToBrushConverter x:Key="HexBrush" />
+        <conv:QualityWidthConverter x:Key="QualityWidth" />
+        <conv:AvatarColorConverter x:Key="AvatarColor" />
+        <conv:InitialConverter x:Key="Initial" />
+        <conv:AvatarImageConverter x:Key="AvatarImage" />
+
+        <DataTemplate x:Key="PeerCardTemplate">
+            <Border Background="#2B2B2B" CornerRadius="6" Padding="10,10,14,10" Margin="0,0,0,8"
+                    MouseLeftButtonDown="PeerCard_MouseDoubleClick" Cursor="Hand">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Grid Width="32" Height="32" VerticalAlignment="Center">
+                        <Ellipse Fill="{Binding SteamID, Converter={StaticResource AvatarColor}}" />
+                        <TextBlock Text="{Binding Name, Converter={StaticResource Initial}}" Foreground="White"
+                                   FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Image Source="{Binding SteamID, Converter={StaticResource AvatarImage}}" Stretch="UniformToFill" />
+                    </Grid>
+
+                    <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding SteamID}" FontSize="11" Foreground="#8F8F8F" FontFamily="Consolas"
+                                   Typography.NumeralAlignment="Tabular" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border CornerRadius="999" Padding="10,3"
+                                Background="{Binding PingColor, Converter={StaticResource HexBrush}, ConverterParameter=36}">
+                            <TextBlock Text="{Binding Ping, StringFormat={}{0:N0} ms}"
+                                       Foreground="{Binding PingColor, Converter={StaticResource HexBrush}}"
+                                       FontSize="12.5" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular" />
+                        </Border>
+                        <Border Width="44" Height="4" CornerRadius="2" Background="#1AFFFFFF" Margin="14,0,0,0" VerticalAlignment="Center">
+                            <Border HorizontalAlignment="Left" CornerRadius="2"
+                                    Background="{Binding PingColor, Converter={StaticResource HexBrush}}"
+                                    Width="{Binding ConnectionQuality, Converter={StaticResource QualityWidth}}" />
+                        </Border>
+                        <TextBlock Text="{Binding ConnectionQuality, StringFormat={}{0:N2}}" Foreground="#B8B8B8"
+                                   FontSize="11.5" Margin="7,0,0,0" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- empty state (shown until a game is attached) -->
+        <Grid x:Name="emptyState">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border Width="54" Height="54" CornerRadius="13" Background="#0DFFFFFF" HorizontalAlignment="Center">
+                    <ui:SymbolIcon Symbol="Games24" FontSize="24" Foreground="#B8B8B8" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Text="No game attached" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,14,0,6" />
+                <TextBlock TextAlignment="Center" FontSize="12" Foreground="#9A9A9A" LineHeight="20"
+                           Text="Start your game, then attach to its window.&#x0a;First time? You will be asked for the game's Steam AppId." />
+                <Button x:Name="attachButton" Content="Attach Game" HorizontalAlignment="Center" Margin="0,18,0,0"
+                        Padding="24,8" FontWeight="SemiBold" Click="AttachButton_Click" />
+            </StackPanel>
+        </Grid>
+
+        <!-- 3: attached content -->
+        <Grid x:Name="attachedContent" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Margin="0,0,0,14">
+                <TextBlock x:Name="gameName" FontSize="19" FontWeight="SemiBold" />
+                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                    <Ellipse Width="7" Height="7" Fill="#6CCB5F" VerticalAlignment="Center" />
+                    <TextBlock x:Name="statusText" FontSize="11.5" Foreground="#9A9A9A" Margin="6,0,0,0" />
+                </StackPanel>
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="peerList" ItemTemplate="{StaticResource PeerCardTemplate}" />
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

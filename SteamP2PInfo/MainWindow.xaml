@@ -1,63 +1,50 @@
-﻿<mah:MetroWindow x:Class="SteamP2PInfo.MainWindow"
+﻿<ui:FluentWindow x:Class="SteamP2PInfo.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:mah="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
-        xmlns:local="clr-namespace:SteamP2PInfo"
-        xmlns:config="clr-namespace:SteamP2PInfo.Config"
-        mc:Ignorable="d"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:views="clr-namespace:SteamP2PInfo.Views"
+        Title="Steam P2P Info"
+        Width="800" Height="450" MinWidth="720" MinHeight="420"
+        FontFamily="Segoe UI Variable Text, Segoe UI"
         WindowStartupLocation="CenterScreen"
-        Title="Steam P2P Info [VERSION]" Width="800" Height="450">
-    <mah:MetroWindow.RightWindowCommands>
-        <mah:WindowCommands>
-            <TextBlock VerticalAlignment="Center" Margin="0 0 10 0">           
-                <Hyperlink NavigateUri="" RequestNavigate="webLink_RequestNavigate" Name="linkUpdate">
-                    <TextBlock FontWeight="Bold" Name="textUpdate"></TextBlock>
-                </Hyperlink>
-            </TextBlock>
-            <TextBlock VerticalAlignment="Center" Margin="5 0 5 0">
-                <Hyperlink Name="labelGameState" NavigateUri="" RequestNavigate="labelGameState_RequestNavigate">
-                    <TextBlock Foreground="Orange" Name="textGameState">ATTACH GAME</TextBlock>
-                </Hyperlink>
-            </TextBlock>
-        </mah:WindowCommands>
-    </mah:MetroWindow.RightWindowCommands>
-    <mah:MetroWindow.Resources>
-        <Style x:Key="textCenter" TargetType="{x:Type TextBlock}">
-            <Setter Property="TextAlignment" Value="Center"></Setter>
-        </Style>
-    </mah:MetroWindow.Resources>
+        WindowBackdropType="Mica"
+        WindowCornerPreference="Round">
     <Grid>
-        <mah:MetroTabControl Name="tabCtrl">
-            <mah:MetroTabItem Header="Session Info" IsEnabled="True">
-                <DataGrid Margin="10 0 10 0" Name="dataGridSession" ItemsSource="{Binding}" AutoGenerateColumns="False" MouseDoubleClick="dataGridSession_DoubleClick">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Steam Name" IsReadOnly="True" Binding="{Binding Name}"></DataGridTextColumn>
-                        <DataGridTextColumn Header="Steam ID" IsReadOnly="True" Binding="{Binding SteamID}" x:Name="ColumnSteamID"></DataGridTextColumn>
-                        <!--<DataGridTextColumn Header="Main Steam ID" IsReadOnly="True" Binding="{Binding MainSteamID}" x:Name="ColumnSteamIDMain"></DataGridTextColumn>-->
-                        <DataGridTextColumn Header="Ping" IsReadOnly="True" Binding="{Binding Ping, StringFormat=N0}">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="{x:Type TextBlock}">
-                                    <Setter Property="Foreground" Value="{Binding PingColor}"></Setter>
-                                    <Setter Property="TextAlignment" Value="Center"></Setter>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Header="Connection Quality" IsReadOnly="True" Binding="{Binding ConnectionQuality, StringFormat=N2}" ElementStyle="{StaticResource textCenter}"></DataGridTextColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </mah:MetroTabItem>
-            <mah:MetroTabItem Header="Config">
-                <ScrollViewer>
-                    <StackPanel Orientation="Vertical" Name="ConfigTab">
-                        <!--<Label Margin="10 0 10 0" ToolTip="Steam Web API key used to query main Steam accounts. Without a valid key, this feature will not be available.">Steam Web API Key:</Label>
-                        <TextBox Margin="10 0 10 0" Text="{Binding Source={x:Static local:Settings.Default}, Path=SteamWebApiKey}" Width="500" HorizontalAlignment="Left"></TextBox>-->
-                        <Label Margin="10 0 10 0" ToolTip="Path to Steam IPC log file. Only change this if you installed Steam somewhere else.">Steam Log File Path:</Label>
-                        <TextBox Margin="10 0 10 0" Text="{Binding Source={x:Static local:Settings.Default}, Path=SteamLogPath}" Width="500" HorizontalAlignment="Left"></TextBox>
-                    </StackPanel>
-                </ScrollViewer>
-            </mah:MetroTabItem>
-        </mah:MetroTabControl>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Title="SteamP2PInfo" />
+
+        <ui:Button x:Name="updateBadge" Grid.Row="0" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Center"
+                   Margin="0,0,150,0" Padding="10,3" Click="UpdateBadge_Click" />
+
+        <!-- NavigationView is the pane only: Wpf.Ui.Controls.NavigationView derives from Control and has no
+             content property, so the visible page lives in the sibling ContentControl (swapped in code-behind). -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="152" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ui:NavigationView x:Name="navigationView" Grid.Column="0" OpenPaneLength="152"
+                               PaneDisplayMode="Left" IsBackButtonVisible="Collapsed" IsPaneToggleVisible="False">
+                <ui:NavigationView.MenuItems>
+                    <ui:NavigationViewItem x:Name="navSession" Content="Session" Icon="{ui:SymbolIcon People24}" />
+                    <ui:NavigationViewItem x:Name="navConfig" Content="Config" Icon="{ui:SymbolIcon Settings24}" />
+                </ui:NavigationView.MenuItems>
+            </ui:NavigationView>
+            <ContentControl x:Name="rootContent" Grid.Column="1" Margin="16,14,16,10" />
+        </Grid>
+
+        <Border Grid.Row="2" BorderBrush="#14FFFFFF" BorderThickness="0,1,0,0" Padding="16,7">
+            <Grid>
+                <TextBlock Text="F2 toggles the overlay  &#183;  Double-click a player to open their Steam profile"
+                           FontSize="11" Foreground="#8F8F8F" />
+                <TextBlock Text="Made by tremwil &#183; Redesigned by zeer" FontSize="11" Foreground="#8F8F8F"
+                           HorizontalAlignment="Right" />
+            </Grid>
+        </Border>
     </Grid>
-</mah:MetroWindow>
+</ui:FluentWindow>
