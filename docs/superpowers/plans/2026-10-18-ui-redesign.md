@@ -2222,7 +2222,7 @@ git commit -m "feat: app icon (dark circle + accent network glyph)"
 **Files:**
 - Modify: `CLAUDE.md`, `README.md`, `SteamP2PInfo/VersionCheck.cs`, `.gitignore`
 
-- [ ] **Step 1: Update `CLAUDE.md`**
+- [x] **Step 1: Update `CLAUDE.md`**
 
 Apply these edits:
 1. Find the UI-stack mention (`grep -n "MahApps" CLAUDE.md`) and replace that Architecture sentence with:
@@ -2233,7 +2233,7 @@ UI framework is WPF-UI 4.3.0 (FluentWindow + TitleBar + NavigationView; the app 
 3. In **Gotchas**, remove the bullet mentioning MahApps dialogs if present; adjust the bullet about `ILRepack`/`Directory.builds.targets` unchanged.
 4. In the same file, update the quoted version in the `VersionCheck.CurrentVersion` sentence from `"V1.2.0"` to `"V2.0.0"`.
 
-- [ ] **Step 2: Bump the version, update `README.md`, ignore `dist/`**
+- [x] **Step 2: Bump the version, update `README.md`, ignore `dist/`**
 
 1. `SteamP2PInfo/VersionCheck.cs`: change `public static readonly string CurrentVersion = "V1.2.0";` to `"V2.0.0"`. The release tag will be `v2.0`; `VersionCheck` only compares against tremwil's upstream API, so a fork release can never trigger a self-update nag.
 2. `README.md`: point the Releases link at the fork — `## [Releases](https://github.com/ZEERDEER/SteamP2PInfo/releases/)` — and add below the intro paragraph:
@@ -2242,7 +2242,7 @@ UI framework is WPF-UI 4.3.0 (FluentWindow + TitleBar + NavigationView; the app 
 ```
 3. `.gitignore`: add a `dist/` line (the release ZIP output folder).
 
-- [ ] **Step 3: Full Debug + Release verification**
+- [x] **Step 3: Full Debug + Release verification**
 
 ```bash
 "D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -p:Configuration=Debug -v:m
@@ -2252,7 +2252,7 @@ ls SteamP2PInfo/bin/Release/
 
 Expected: both builds with no errors (if the summary block is missing under `-v:m`, trust the exit code or add `-clp:Summary`); Release contains `SteamP2PInfo.exe`, `SteamP2PInfo.exe.config` (only if Task 9 decided to ship it for binding redirects), `steam_api64.dll`, `Dia2Lib.dll`, `OSExtensions.dll`, `TraceReloggerLib.dll`, `amd64/`.
 
-- [ ] **Step 4: Package the release ZIP**
+- [x] **Step 4: Package the release ZIP**
 
 ```powershell
 New-Item -ItemType Directory -Force "dist" | Out-Null
@@ -2263,14 +2263,14 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 Expected: the ZIP lists `SteamP2PInfo.exe`, `steam_api64.dll`, the TraceEvent DLLs and the `amd64/` entries.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add CLAUDE.md README.md SteamP2PInfo/VersionCheck.cs .gitignore
 git commit -m "docs: bump to V2.0.0, README credits/releases link, dist/ ignore"
 ```
 
-- [ ] **Step 6: MANUAL smoke test — DEFERRED to the user (2026-10-18 decision)**
+- [x] **Step 6: MANUAL smoke test — DEFERRED to the user (2026-10-18 decision)**
 
 The user explicitly waived pre-push testing ("直接推送到GitHub，有问题之后修改了接着推送就行"): they test the published release and report problems, which get fixed and re-pushed. **Do not block Task 13 on this step.** Keep the spec §6 checklist as the handoff list: attach flow incl. the Steam console dialog and clipboard copy; peers with name/ID/ping/quality (avatar or initial circle); F2 toggles the overlay; overlay follows the game window (move & focus); double-click opens the profile; config edits persist to `config\{process}.json`; single-instance message; closing the game closes the app; credits line visible; Mica backdrop + rounded corners on Win11.
 
