@@ -17,7 +17,6 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using MahApps.Metro.Controls;
-using MahApps.Metro.Controls.Dialogs;
 using System.IO;
 using Steamworks;
 using System.Security.Permissions;
@@ -72,11 +71,12 @@ namespace SteamP2PInfo
                     string v = VersionCheck.LatestRelease["tag_name"].ToString();
                     if (string.Compare(VersionCheck.CurrentVersion, v) < 0)
                     {
-                        this.Invoke(() =>
+                        Dispatcher.Invoke(() =>
                         {
-                            linkUpdate.NavigateUri = new Uri("https://github.com/tremwil/SteamP2PInfo/releases/tag/" + v);
+                            string url = "https://github.com/tremwil/SteamP2PInfo/releases/tag/" + v;
+                            linkUpdate.NavigateUri = new Uri(url);
                             textUpdate.Text = string.Format("NEW VERSION ({0}), DOWNLOAD HERE", v);
-                            this.ShowMessageAsync("New Version Available", string.Format("{0} is out! Click the link in the title bar to download it.", v));
+                            _ = Dialogs.ShowUpdateAvailable(this, v, new Uri(url));
                         });
                     }
                 }
@@ -85,7 +85,7 @@ namespace SteamP2PInfo
 
         private void Timer_Tick(object o)
         {
-            this.Invoke(() =>
+            Dispatcher.Invoke(() =>
             {
                 // Necessary to close the program after the game exits, as SteamAPI_Shutdown isn't
                 // sufficient to have steam recognize the game is no longer running
@@ -142,18 +142,25 @@ namespace SteamP2PInfo
             });
         }
 
-        private void ShowUnhandledException(Exception err, string type, bool fatal)
+        private async void ShowUnhandledException(Exception err, string type, bool fatal)
         {
-            MetroDialogSettings diagSettings = new MetroDialogSettings()
+            if (!Dispatcher.CheckAccess())
             {
-                ColorScheme = MetroDialogColorScheme.Accented,
-                AffirmativeButtonText = "Copy",
-                NegativeButtonText = "Close"
-            };
+                Dispatcher.Invoke(() => ShowUnhandledException(err, type, fatal));
+                return;
+            }
 
-            SystemSounds.Exclamation.Play();
-            var result = this.ShowModalMessageExternal($"Unhandled Exception: {err.GetType().Name}", $"{err.Message}\n{err.StackTrace}", MessageDialogStyle.AffirmativeAndNegative, diagSettings);
-            if (result == MessageDialogResult.Affirmative)
+            System.Media.SystemSounds.Exclamation.Play();
+            var result = await new Wpf.Ui.Controls.MessageBox
+            {
+                Owner = this,
+                Title = $"Unhandled Exception: {err.GetType().Name}",
+                Content = $"{err.Message}\n{err.StackTrace}",
+                PrimaryButtonText = "Copy",
+                CloseButtonText = "Close",
+            }.ShowDialogAsync();
+
+            if (result == Wpf.Ui.Controls.MessageBoxResult.Primary)
                 Clipboard.SetText($"{err.GetType().Name}: {err.Message}\n{err.StackTrace}");
 
             Close();
@@ -180,7 +187,7 @@ namespace SteamP2PInfo
             e.Handled = true;
         }
 
-        private void labelGameState_RequestNavigate(object sender, RequestNavigateEventArgs e)
+        private async void labelGameState_RequestNavigate(object sender, RequestNavigateEventArgs e)
         {
             if (wInfo == null)
             {
@@ -197,13 +204,13 @@ namespace SteamP2PInfo
 
                     if (GameConfig.Current.SteamAppId == 0)
                     {
-                        string input = Microsoft.VisualBasic.Interaction.InputBox("Please enter the Steam App ID to use with this game:", "Steam App ID Required");
-                        if (!uint.TryParse(input, out uint result))
+                        int? result = await Dialogs.PromptAppId(this);
+                        if (result == null)
                         {
                             MessageBox.Show("Please input a valid number", "Input Error", MessageBoxButton.OK, MessageBoxImage.Error);
                             return;
                         }
-                        GameConfig.Current.SteamAppId = (int)result;
+                        GameConfig.Current.SteamAppId = result.Value;
                     }
 
                     Environment.SetEnvironmentVariable("SteamAppId", GameConfig.Current.SteamAppId.ToString());
@@ -310,22 +317,11 @@ namespace SteamP2PInfo
             return startupDateString == null || DateTime.Parse(startupDateString) > ipcLogDate;
         }
 
-        private void SteamConsoleHelper()
+        private async void SteamConsoleHelper()
         {
             Process.Start(new ProcessStartInfo("steam://open/console"));
 
-            MetroDialogSettings diagSettings = new MetroDialogSettings()
-            {
-                ColorScheme = MetroDialogColorScheme.Accented,
-                AffirmativeButtonText = "Copy Command",
-                NegativeButtonText = "Close"
-            };
-
-            var result = this.ShowModalMessageExternal(
-                "Necessary Step", $"The Steam console has just been opened. Please enter the following to enable matchmaking call logging: '{STEAM_COMMAND}'",
-                MessageDialogStyle.AffirmativeAndNegative, diagSettings
-            );
-            if (result == MessageDialogResult.Affirmative)
+            if (await Dialogs.ShowCopyCommand(this, STEAM_COMMAND))
             {
                 try
                 {
