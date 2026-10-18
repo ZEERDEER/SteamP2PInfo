@@ -1,26 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using System.Diagnostics;
 using SteamP2PInfo.WinAPI;
-using MahApps.Metro.Controls;
+using Wpf.Ui.Controls;
 
 namespace SteamP2PInfo
 {
     /// <summary>
     /// Interaction logic for WindowSelectDialog.xaml
     /// </summary>
-    public partial class WindowSelectDialog : MetroWindow
+    public partial class WindowSelectDialog : FluentWindow
     {
         public class WindowInfo
         {
@@ -59,21 +53,46 @@ namespace SteamP2PInfo
                 return true;
             }, 0);
 
-            foreach (WindowInfo wInfo in windows)
-            {
-                WindowListBox.Items.Add($"{wInfo.Title} ({wInfo.ProcessName})");
-            }
+            ApplyFilter("");
+        }
+
+        private void ApplyFilter(string query)
+        {
+            var filtered = string.IsNullOrWhiteSpace(query)
+                ? windows
+                : windows.Where(w =>
+                    w.Title.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    w.ProcessName.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+
+            WindowListBox.ItemsSource = filtered;
+            btnOpen.IsEnabled = WindowListBox.SelectedItem != null;
+        }
+
+        private WindowInfo GetSelected()
+        {
+            // ItemsSource is always the filtered list, so SelectedItem is the only correct source:
+            // never index into `windows` with the ListBox's index (that index refers to the filtered view).
+            return WindowListBox.SelectedItem as WindowInfo;
+        }
+
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            ApplyFilter(searchBox.Text);
         }
 
         private void WindowListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            SelectedWindow = windows[WindowListBox.SelectedIndex];
+            WindowInfo selected = GetSelected();
+            if (selected == null) return;
+            SelectedWindow = selected;
             DialogResult = true;
         }
 
         private void OpenButton_Click(object sender, RoutedEventArgs e)
         {
-            SelectedWindow = windows[WindowListBox.SelectedIndex];
+            WindowInfo selected = GetSelected();
+            if (selected == null) return;
+            SelectedWindow = selected;
             DialogResult = true;
         }
 
@@ -84,7 +103,7 @@ namespace SteamP2PInfo
 
         private void WindowListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            btnOpen.IsEnabled = true;
+            btnOpen.IsEnabled = WindowListBox.SelectedItem != null;
         }
     }
 }
