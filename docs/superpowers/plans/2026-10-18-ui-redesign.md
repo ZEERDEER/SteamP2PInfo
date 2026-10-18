@@ -139,7 +139,7 @@ git commit -m "build: add WPF-UI 4.3.0 dependency (keeps MahApps temporarily)"
 **Files:**
 - Create: `SteamP2PInfo/Controls/HotKeyBox.cs`
 - Delete: `SteamP2PInfo/HotkeyConverter.cs`
-- Modify: `SteamP2PInfo/HotkeyManager.cs`
+- Modify: `SteamP2PInfo/HotkeyManager.cs`, `SteamP2PInfo/Config/OverlayConfig.cs`, `SteamP2PInfo/MainWindow.xaml`
 - Modify: `SteamP2PInfo/SteamP2PInfo.csproj`
 
 - [ ] **Step 1: Create `SteamP2PInfo/Controls/HotKeyBox.cs`**
@@ -246,7 +246,25 @@ namespace SteamP2PInfo.Controls
 
 Remove `using MahApps.Metro.Controls;` and delete the `AddHotkey(IntPtr hWindow, Func<HotKey> getter, Action handler)` overload (the whole method, including its local `iget()` function). Keep everything else, including `AddHotkey(IntPtr hWindow, Func<int> getter, Action handler)` which `MainWindow` uses.
 
-- [ ] **Step 3: Delete the converter file and its csproj entry**
+- [ ] **Step 3: Replace the converter's two remaining references, then delete the file and its csproj entry**
+
+`HotkeyConverter` is referenced in exactly two places (verified with `grep -rn "HotkeyConverter" SteamP2PInfo/ --include=*.cs --include=*.xaml`). Remove both **before** deleting the file, or the build breaks:
+
+1. `SteamP2PInfo/Config/OverlayConfig.cs` lines 52–54 currently read:
+```csharp
+        [ConfigBindingElement("Overlay Hotkey", typeof(HotKeyBox), "HotKeyProperty",
+            Tooltip: "Hotkey to show/hide the overlay.",
+            ValueConverter: typeof(HotkeyConverter))]
+```
+Replace that attribute with (fully-qualified type on purpose: bare `HotKeyBox` is ambiguous while `using MahApps.Metro.Controls;` is still in the file; and the new control's DP is `ValueProperty`, not MahApps' `HotKeyProperty`):
+```csharp
+        [ConfigBindingElement("Overlay Hotkey", typeof(SteamP2PInfo.Controls.HotKeyBox), "ValueProperty",
+            Tooltip: "Hotkey to show/hide the overlay.")]
+```
+Leave the `using MahApps.Metro.Controls;` line in that file alone — the other attributes still use MahApps types until Task 6.
+2. `SteamP2PInfo/MainWindow.xaml` line 27: delete the line `<local:HotkeyConverter x:Key="HotkeyConverter" />` (nothing references that resource; it only kept the type alive).
+
+Then delete the file and its csproj entry:
 
 ```bash
 rm "SteamP2PInfo/HotkeyConverter.cs"
@@ -264,7 +282,7 @@ In `SteamP2PInfo/SteamP2PInfo.csproj`, remove the line `<Compile Include="Hotkey
 "D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -p:Configuration=Debug -v:m
 ```
 
-Expected: `0 Error(s)` (the old XAML still references `local:HotkeyConverter` at this point — if the build fails on the missing resource, also remove the line `<local:HotkeyConverter x:Key="HotkeyConverter" />` from `MainWindow.xaml` in this step).
+Expected: `0 Error(s)`. Both `HotkeyConverter` references were removed in Step 3, so the build should not fail on the missing type — if it does, find leftovers with `grep -rn "HotkeyConverter" SteamP2PInfo/ --include=*.cs --include=*.xaml` and remove them.
 
 - [ ] **Step 5: Commit**
 
@@ -1606,7 +1624,7 @@ Replace `using MahApps.Metro.Controls;` with `using Wpf.Ui.Controls;`. Every `[C
 
 Replace `using MahApps.Metro.Controls;` with `using Wpf.Ui.Controls;` and update attribute arguments:
 
-1. `Hotkey`: `[ConfigBindingElement("Overlay Hotkey", typeof(Controls.HotKeyBox), "ValueProperty", Tooltip: "Hotkey to show/hide the overlay.")]` — drop the `ValueConverter` argument (no converter needed).
+1. `Hotkey`: already migrated to the custom control in Task 3 — verify it reads exactly `[ConfigBindingElement("Overlay Hotkey", typeof(SteamP2PInfo.Controls.HotKeyBox), "ValueProperty", Tooltip: "Hotkey to show/hide the overlay.")]` and change nothing here.
 2. `XOffset` / `YOffset`: `typeof(NumberBox)`, `"ValueProperty"`, with `UIElementProperties: new object[] { new object[] { "Minimum", 0d }, new object[] { "Maximum", 1d } }` (drop the MahApps-only `Interval`/`ParsingNumberStyle`/`StringFormat` entries).
 3. `StrokeWidth`: `typeof(NumberBox)`, `"ValueProperty"`, with `UIElementProperties: new object[] { new object[] { "Minimum", 0d } }`.
 4. `TextColor` / `StrokeColor`: `[ConfigBindingElement("Text Color", typeof(ColorPicker), "SelectedColorProperty", Tooltip: "...", ValueConverter: typeof(ColorStringConverter))]` and the same for Stroke Color. (If `SelectedColorProperty` is not the actual DP name, the compiler error will name the real one — adjust and rebuild.)
