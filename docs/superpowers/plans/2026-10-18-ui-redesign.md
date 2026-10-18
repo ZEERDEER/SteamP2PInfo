@@ -145,7 +145,6 @@ git commit -m "build: add WPF-UI 4.3.0 dependency (keeps MahApps temporarily)"
 - [ ] **Step 1: Create `SteamP2PInfo/Controls/HotKeyBox.cs`**
 
 ```csharp
-using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
@@ -177,6 +176,7 @@ namespace SteamP2PInfo.Controls
         {
             IsReadOnly = true;
             IsReadOnlyCaretVisible = false;
+            MinWidth = 120; // Format(0) is empty: keep the box visible in the config card
             Text = HotkeyUtils.Format(Value);
             GotFocus += (s, e) => Text = "Press keys\u2026";
             LostFocus += (s, e) => Text = HotkeyUtils.Format(Value);
@@ -191,7 +191,13 @@ namespace SteamP2PInfo.Controls
 
         protected override void OnPreviewKeyDown(KeyEventArgs e)
         {
-            Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+            Key key = e.Key;
+            if (key == Key.System)
+                key = e.SystemKey;
+            else if (key == Key.ImeProcessed)
+                key = e.ImeProcessedKey;
+            else if (key == Key.DeadCharProcessed)
+                key = e.DeadCharProcessedKey;
 
             if (key == Key.Tab)
                 return; // let focus move on
@@ -210,6 +216,11 @@ namespace SteamP2PInfo.Controls
                 key == Key.LeftShift || key == Key.RightShift ||
                 key == Key.LWin || key == Key.RWin)
                 return; // wait for a non-modifier key
+
+            // Unmapped or synthetic keys (e.g. Key.None) resolve to vk 0;
+            // storing that would silently clear the hotkey.
+            if (KeyInterop.VirtualKeyFromKey(key) == 0)
+                return;
 
             Value = HotkeyUtils.FromKeyboard(key);
             Text = HotkeyUtils.Format(Value);
@@ -1651,7 +1662,7 @@ namespace SteamP2PInfo.Config
 
 1. `ConfigEnumComboBoxAttribute`: change the ComboBox creation so it renders right-aligned and themed — no change needed to code (plain `ComboBox` is themed by `ControlsDictionary`); leave the file as is.
 2. `ConfigFontSelectorAttribute`: no code change needed (plain `Button` is themed; the `System.Windows.Forms.FontDialog` stays).
-3. `ConfigBindingElementAttribute`: no code change needed.
+3. `ConfigBindingElementAttribute`: add a guard where it resolves the target DependencyProperty by reflection. Today a wrong DP name throws a bare `NullReferenceException` the first time the config tab renders (hit twice during planning: MahApps `IsOnProperty` vs WPF-UI `IsCheckedProperty`, and the ColorPicker's non-existent `SelectedColorProperty`). Read the attribute's existing resolution code and make a missing field fail loudly: keep the same `GetField(..., BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)` call, but when it returns null throw an `InvalidOperationException` naming the DP string, the control type, and the option it belongs to (use the option name the attribute already holds). No other behavior change.
 
 - [ ] **Step 6: Update `SteamP2PInfo/Config/GameConfig.cs` attribute arguments**
 
