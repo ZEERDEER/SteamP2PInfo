@@ -31,7 +31,7 @@ namespace SteamP2PInfo.Controls
             IsReadOnly = true;
             IsReadOnlyCaretVisible = false;
             Text = HotkeyUtils.Format(Value);
-            GotFocus += (s, e) => Text = "Press keys…";
+            GotFocus += (s, e) => Text = "Press keys\u2026";
             LostFocus += (s, e) => Text = HotkeyUtils.Format(Value);
         }
 
