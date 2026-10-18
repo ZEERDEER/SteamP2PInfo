@@ -1766,7 +1766,7 @@ git commit -m "feat: Fluent config cards, WPF-UI controls, ping color preview, n
 - Rewrite: `SteamP2PInfo/WindowSelectDialog.xaml`
 - Rewrite: `SteamP2PInfo/WindowSelectDialog.xaml.cs`
 
-- [ ] **Step 1: Rewrite `SteamP2PInfo/WindowSelectDialog.xaml`**
+- [x] **Step 1: Rewrite `SteamP2PInfo/WindowSelectDialog.xaml`**
 
 ```xml
 <ui:FluentWindow x:Class="SteamP2PInfo.WindowSelectDialog"
@@ -1820,7 +1820,7 @@ git commit -m "feat: Fluent config cards, WPF-UI controls, ping color preview, n
 </ui:FluentWindow>
 ```
 
-- [ ] **Step 2: Rewrite `SteamP2PInfo/WindowSelectDialog.xaml.cs`**
+- [x] **Step 2: Rewrite `SteamP2PInfo/WindowSelectDialog.xaml.cs`**
 
 ```csharp
 using System;
@@ -1934,7 +1934,7 @@ namespace SteamP2PInfo
 }
 ```
 
-- [ ] **Step 3: Build**
+- [x] **Step 3: Build**
 
 ```bash
 "D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -p:Configuration=Debug -v:m
@@ -1942,11 +1942,11 @@ namespace SteamP2PInfo
 
 Expected: `0 Error(s)`.
 
-- [ ] **Step 4: MANUAL — picker check**
+- [x] **Step 4: MANUAL — picker check**
 
 Run the app, click **Attach Game**. Expected: Fluent picker with search box, window list showing "Title (process)", typing filters the list, double-click or Attach closes it and the attach flow continues.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -1960,7 +1960,7 @@ git commit -m "feat: Fluent window picker with search filter"
 **Files:**
 - Modify: `SteamP2PInfo/OverlayWindow.xaml`
 
-- [ ] **Step 1: Align the overlay columns**
+- [x] **Step 1: Align the overlay columns**
 
 In `OverlayWindow.xaml`, keep the structure but apply these changes:
 
@@ -1989,7 +1989,7 @@ Exact replacements:
 
 and on the `DataGrid` element add `RowHeight="26"`.
 
-- [ ] **Step 2: Build**
+- [x] **Step 2: Build**
 
 ```bash
 "D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -p:Configuration=Debug -v:m
@@ -1997,11 +1997,11 @@ and on the `DataGrid` element add `RowHeight="26"`.
 
 Expected: `0 Error(s)`.
 
-- [ ] **Step 3: MANUAL — overlay still works**
+- [x] **Step 3: MANUAL — overlay still works**
 
 With a game running and attached, press the overlay hotkey: ping/quality columns should be right-aligned and evenly spaced; position/anchor behavior unchanged.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add SteamP2PInfo/OverlayWindow.xaml
@@ -2093,7 +2093,7 @@ Include `SteamP2PInfo/build.targets` in the `git add` if Step 4 edited it.
 - Modify: `SteamP2PInfo/Settings.Designer.cs`
 - Modify: `SteamP2PInfo/app.config`
 
-- [ ] **Step 1: Replace both default paths in all three files**
+- [x] **Step 1: Replace both default paths in all three files**
 
 Replace the string `C:\Program Files (x86)\Steam\logs\ipc_SteamClient.log` with `D:\Steam\logs\ipc_SteamClient.log` and `C:\Program Files (x86)\Steam\logs\bootstrap_log.txt` with `D:\Steam\logs\bootstrap_log.txt` in:
 
@@ -2109,7 +2109,7 @@ grep -rn "Program Files" SteamP2PInfo/Settings.settings SteamP2PInfo/Settings.De
 
 Expected: the first command shows `D:\Steam\logs\...` in all three files; the second shows no hits.
 
-- [ ] **Step 2: Build and verify the defaults land in the config**
+- [x] **Step 2: Build and verify the defaults land in the config**
 
 ```bash
 "D:/App/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SteamP2PInfo.sln -p:Configuration=Debug -v:m
@@ -2117,7 +2117,7 @@ Expected: the first command shows `D:\Steam\logs\...` in all three files; the se
 
 MANUAL check: the Config page's IPC log path field shows `D:\Steam\logs\ipc_SteamClient.log` for a fresh profile (if your user.config already has the old path saved, the field keeps the old value — that is the intended upgrade behavior).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add SteamP2PInfo/Settings.settings SteamP2PInfo/Settings.Designer.cs SteamP2PInfo/app.config
