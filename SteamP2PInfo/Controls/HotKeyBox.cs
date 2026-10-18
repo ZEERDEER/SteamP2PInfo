@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
@@ -30,6 +29,7 @@ namespace SteamP2PInfo.Controls
         {
             IsReadOnly = true;
             IsReadOnlyCaretVisible = false;
+            MinWidth = 120; // Format(0) is empty: keep the box visible in the config card
             Text = HotkeyUtils.Format(Value);
             GotFocus += (s, e) => Text = "Press keys\u2026";
             LostFocus += (s, e) => Text = HotkeyUtils.Format(Value);
@@ -44,7 +44,13 @@ namespace SteamP2PInfo.Controls
 
         protected override void OnPreviewKeyDown(KeyEventArgs e)
         {
-            Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+            Key key = e.Key;
+            if (key == Key.System)
+                key = e.SystemKey;
+            else if (key == Key.ImeProcessed)
+                key = e.ImeProcessedKey;
+            else if (key == Key.DeadCharProcessed)
+                key = e.DeadCharProcessedKey;
 
             if (key == Key.Tab)
                 return; // let focus move on
@@ -63,6 +69,11 @@ namespace SteamP2PInfo.Controls
                 key == Key.LeftShift || key == Key.RightShift ||
                 key == Key.LWin || key == Key.RWin)
                 return; // wait for a non-modifier key
+
+            // Unmapped or synthetic keys (e.g. Key.None) resolve to vk 0;
+            // storing that would silently clear the hotkey.
+            if (KeyInterop.VirtualKeyFromKey(key) == 0)
+                return;
 
             Value = HotkeyUtils.FromKeyboard(key);
             Text = HotkeyUtils.Format(Value);
