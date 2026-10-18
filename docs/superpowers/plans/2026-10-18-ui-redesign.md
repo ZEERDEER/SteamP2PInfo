@@ -1301,6 +1301,19 @@ Expected: `0 Error(s)`. If `Symbol="Games24"` or `OpenPaneLength` does not exist
 
 Run `SteamP2PInfo/bin/Debug/SteamP2PInfo.exe`. Expected: dark Fluent window with title bar, left navigation with Session/Config, empty state with **Attach Game** button, bottom bar showing the credits **"Made by tremwil · Redesigned by zeer"**. Window should have rounded corners and a Mica backdrop. Config tab shows the STEAM card (the generated cards are still the old-styled ones until Task 6).
 
+Known risk to watch here: `Wpf.Ui` references `System.Runtime.CompilerServices.Unsafe 6.0.3.0`, but this repo ships `System.Runtime.CompilerServices.Unsafe 6.0.0.0` (Task 2 recorded 18 MSB3277 warnings for exactly this). Costura's version-agnostic `AssemblyResolve` normally makes that harmless. If startup instead fails with a `FileLoadException`/`TypeLoadException` naming `System.Runtime.CompilerServices.Unsafe`, add this inside `<configuration>` in `SteamP2PInfo/app.config` (create the `<runtime>` section if absent), rebuild, and retest:
+
+```xml
+  <runtime>
+    <assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">
+      <dependentAssembly>
+        <assemblyIdentity name="System.Runtime.CompilerServices.Unsafe" publicKeyToken="b03f5f7f11d50a3a" culture="neutral" />
+        <bindingRedirect oldVersion="0.0.0.0-6.0.3.0" newVersion="6.0.0.0" />
+      </dependentAssembly>
+    </assemblyBinding>
+  </runtime>
+```
+
 - [ ] **Step 13: Commit**
 
 ```bash
