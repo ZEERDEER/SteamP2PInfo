@@ -363,3 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 # Visual companion mockups (brainstorming sessions)
 .superpowers/
+
+# Release ZIP output
+dist/

@@ -21,6 +21,8 @@ Run these from a Developer PowerShell (or use the full path to MSBuild under the
 
 Known-benign warnings: CS0067 on `GameConfig.PropertyChanged` / `OverlayConfig.PropertyChanged` (Fody generates the raise code at build time) and NU1903 for old `System.*` packages pulled in by TraceEvent 2.0.76.
 
+`WPF-UI` restores from NuGet like the other packages; the Release post-build's file pruning is configured in `build.targets`.
+
 There are no automated tests. Verifying anything requires a live game, Steam and admin rights:
 
 1. Start the game, then run `SteamP2PInfo.exe` (UAC prompt, x64).
@@ -28,7 +30,7 @@ There are no automated tests. Verifying anything requires a live game, Steam and
 3. The app opens the Steam console; run `log_ipc "BeginAuthSession,EndAuthSession,LeaveLobby,SendClanChatMessage"` there (the app can copy it to the clipboard).
 4. Peers appear in the "Session Info" tab and in the overlay. The overlay is windowed/borderless only.
 
-`VersionCheck.CurrentVersion` ("V1.2.0") is the hardcoded version compared against the GitHub releases API at startup; bump it together with the README when releasing.
+`VersionCheck.CurrentVersion` ("V2.0.0") is the hardcoded version compared against the GitHub releases API at startup; bump it together with the README when releasing.
 
 ## Architecture
 
@@ -46,11 +48,11 @@ Ping text color is resolved by `SteamPeerBase.PingColor`, which picks the highes
 
 Overlay: `OverlayWindow` is a transparent, topmost, click-through WPF window kept aligned with the game window (DPI-aware) from `OverlayAnchor` plus X/Y offsets; its extended styles also hide it from Alt+Tab, which is why dragging the overlay is a documented non-working feature. `OverlayTextBlock` is a custom `FrameworkElement` that draws outlined text (fill + stroke geometry). Position and visibility are driven by WinEvent hooks (game window moved, foreground change) plus Z-order juggling relative to the game window.
 
-Config: per-game JSON at `config/{processName}.json` (Newtonsoft, path relative to the process working directory) via `GameConfig.LoadOrCreate` into static `GameConfig.Current`; app-wide values live in `Settings.settings` (user.config). The Config tab is generated at runtime from attributes on the config classes (`[ConfigBindingElement]`, `[ConfigEnumComboBox]`, `[ConfigFontSelector]`, `[ConfigCategory]`); `ConfigUIBuilder` reflects over them. To add a setting, add a `[JsonProperty]` property with one of these attributes; no XAML changes are needed. Fody's `PropertyChanged` weaver generates the `INotifyPropertyChanged` plumbing, and a Fody quirk breaks change notification for `GameConfig`, worked around by re-saving the config every 6 timer ticks in `MainWindow.Timer_Tick`.
+Config: per-game JSON at `config/{processName}.json` (Newtonsoft, path relative to the process working directory) via `GameConfig.LoadOrCreate` into static `GameConfig.Current`; app-wide values live in `Settings.settings` (user.config). The Config tab is generated at runtime from attributes on the config classes (`[ConfigBindingElement]`, `[ConfigEnumComboBox]`, `[ConfigFontSelector]`, `[ConfigCategory]`, `[ConfigPingColorsPreview]`); `ConfigUIBuilder` reflects over them. To add a setting, add a `[JsonProperty]` property with one of these attributes; no XAML changes are needed. Fody's `PropertyChanged` weaver generates the `INotifyPropertyChanged` plumbing, and a Fody quirk breaks change notification for `GameConfig`, worked around by re-saving the config every 6 timer ticks in `MainWindow.Timer_Tick`.
 
-Other pieces: `HotkeyManager` is a WH_KEYBOARD_LL hook whose hotkeys fire only while the attached game window is foreground (combo encoded as `vk | modifiers << 8`; `HotkeyConverter` bridges it to MahApps `HotKey`). `Logger` writes `logs/{processName}/{processName}-{date}.log` only when the per-game "Log Activity" option is enabled. `MustEnterSteamCommand` re-prompts for the Steam console command when the version changed (`Settings.LastRunVersion`), the IPC log is missing, or Steam started after the IPC log was last written; it reads `bootstrap_log.txt` backwards with `ReverseTextReader`.
+Other pieces: `HotkeyManager` is a WH_KEYBOARD_LL hook whose hotkeys fire only while the attached game window is foreground (combo encoded as `vk | modifiers << 8`, the same encoding `Controls/HotKeyBox` uses in the config UI). `Logger` writes `logs/{processName}/{processName}-{date}.log` only when the per-game "Log Activity" option is enabled. `MustEnterSteamCommand` re-prompts for the Steam console command when the version changed (`Settings.LastRunVersion`), the IPC log is missing, or Steam started after the IPC log was last written; it reads `bootstrap_log.txt` backwards with `ReverseTextReader`.
 
-UI framework is MahApps.Metro 2.x (MetroWindow, toggles, dialogs); the peer table is a WPF `DataGrid` bound to an `ObservableCollection<SteamPeerBase>`.
+UI framework is WPF-UI 4.3.0 (FluentWindow + TitleBar + NavigationView; the app runs dark-only with `ThemesDictionary Theme="Dark"`). The main window hosts two views in `Views/`: `SessionView` (peer cards bound to `ObservableCollection<SteamPeerBase>`, avatars via `SteamAvatar`, update banner) and `ConfigView` (STEAM card + generated settings cards). Config controls come from WPF-UI (`ToggleSwitch` — its state DP is `IsCheckedProperty` — and `NumberBox`) plus custom `Controls/HotKeyBox` (int encoding `vk | mods << 8`, same as the config JSON) and `Controls/ColorBox` (hex string with live tint; WPF-UI 4.3.0 ships no usable color picker). Dialogs go through `Dialogs.cs` (WPF-UI `MessageBox`).
 
 ## Gotchas and vestigial code
 
