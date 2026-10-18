@@ -7,7 +7,7 @@ using System.IO;
 using Newtonsoft.Json;
 using System.ComponentModel;
 using System.Windows.Controls;
-using MahApps.Metro.Controls;
+using Wpf.Ui.Controls;
 
 namespace SteamP2PInfo.Config
 {
@@ -30,7 +30,7 @@ namespace SteamP2PInfo.Config
         /// feature to games that don't support it, like Elden Ring. 
         /// </summary>
         [JsonProperty("set_played_with")]
-        [ConfigBindingElement("Set Played With", typeof(ToggleSwitch), "IsOnProperty",
+        [ConfigBindingElement("Set Played With", typeof(ToggleSwitch), "IsCheckedProperty",
             Tooltip: "If enabled, will make peers show up in the Steam \"Recent Players\" list.",
             UIElementProperties: new object[] {
                 new object[] { "OnContent", "Yes" },
@@ -39,7 +39,7 @@ namespace SteamP2PInfo.Config
         public bool SetPlayedWith { get; set; } = false;
 
         [JsonProperty("open_profile_in_overlay")]
-        [ConfigBindingElement("Show profiles in Steam overlay", typeof(ToggleSwitch), "IsOnProperty",
+        [ConfigBindingElement("Show profiles in Steam overlay", typeof(ToggleSwitch), "IsCheckedProperty",
             Tooltip: "If enabled, double clicking on a peer's name in the Session Info tab will open their profile\ninside the Steam overlay. Otherwise, the default browser is used.",
             UIElementProperties: new object[] {
                 new object[] { "OnContent", "Yes" },
@@ -51,7 +51,7 @@ namespace SteamP2PInfo.Config
         /// If true, will dump peer information into a game-specific log file.
         /// </summary>
         [JsonProperty("log_activity")]
-        [ConfigBindingElement("Log Activity", typeof(ToggleSwitch), "IsOnProperty",
+        [ConfigBindingElement("Log Activity", typeof(ToggleSwitch), "IsCheckedProperty",
             Tooltip: "If enabled, will log each peer connection / disconnection in a game-specific log file.",
             UIElementProperties: new object[] {
                 new object[] { "OnContent", "Yes" },
@@ -63,7 +63,7 @@ namespace SteamP2PInfo.Config
         /// If true, the hotkey system will be enabled while attached to this game.
         /// </summary>
         [JsonProperty("hotkeys_enabled")]
-        [ConfigBindingElement("Enable Hotkeys", typeof(ToggleSwitch), "IsOnProperty",
+        [ConfigBindingElement("Enable Hotkeys", typeof(ToggleSwitch), "IsCheckedProperty",
             Tooltip: "If enabled, the hotkey system will be active while this game is running.",
             UIElementProperties: new object[] {
                 new object[] { "OnContent", "Yes" },
@@ -75,7 +75,7 @@ namespace SteamP2PInfo.Config
         /// If true, a sound will be played when a new multiplayer session is detected.
         /// </summary>
         [JsonProperty("play_sound_on_new_session")]
-        [ConfigBindingElement("Play sound on new session", typeof(ToggleSwitch), "IsOnProperty",
+        [ConfigBindingElement("Play sound on new session", typeof(ToggleSwitch), "IsCheckedProperty",
             Tooltip: "If enabled, a sound will be played when a new multiplayer session is detected.",
             UIElementProperties: new object[] {
                 new object[] { "OnContent", "Yes" },
@@ -87,7 +87,7 @@ namespace SteamP2PInfo.Config
         /// Overlay configuration for this game. Includes things like placement, enabled/disabled, etc.
         /// </summary>
         [JsonProperty("overlay")]
-        [ConfigCategory("Overlay Config")]
+        [ConfigCategory("OVERLAY")]
         public OverlayConfig OverlayConfig { get; private set; } = new OverlayConfig();
 
         /// <summary>

@@ -39,7 +39,10 @@ namespace SteamP2PInfo.Config
         {
             this.OptionName = OptionName;
             this.UIElementType = UIElementType;
-            this.TargetProperty = (DependencyProperty)UIElementType.GetField(TargetProperty, BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).GetValue(null);
+            FieldInfo dpField = UIElementType.GetField(TargetProperty, BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+            if (dpField == null)
+                throw new InvalidOperationException($"ConfigBindingElement: '{TargetProperty}' is not a public static field on {UIElementType.Name} (option '{OptionName}').");
+            this.TargetProperty = (DependencyProperty)dpField.GetValue(null);
             this.ValueConverter = ValueConverter == null ? null : (IValueConverter)Activator.CreateInstance(ValueConverter);
             this.Tooltip = Tooltip;
 

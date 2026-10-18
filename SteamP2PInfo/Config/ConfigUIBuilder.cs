@@ -1,63 +1,119 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Data;
-using System.Windows.Controls;
-using System.ComponentModel;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Media;
 
 namespace SteamP2PInfo.Config
 {
     public static class ConfigUIBuilder
     {
-        public static Grid CreateConfigEditor(object config)
+        /// <summary>Full editor: a GENERAL card for top-level options plus one card per [ConfigCategory] property.</summary>
+        public static StackPanel CreateConfigEditor(object config)
         {
-            PropertyInfo[] editableProperties = config.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
-                .Where(p => p.GetCustomAttributes().Any(a => a is IConfigUIElement)).ToArray();
+            var panel = new StackPanel();
 
-            Grid grid = new Grid() 
-            { 
-                Margin = new Thickness(10),
-                ColumnDefinitions =
-                {
-                    new ColumnDefinition() { Width = new GridLength(0, GridUnitType.Auto) },
-                    new ColumnDefinition() { Width = new GridLength(0, GridUnitType.Auto) }
-                }
-            };
-            for (int i = 0; i < editableProperties.Length; i++)
+            var generalRows = CreateRowsPanel(config, skipCategories: true);
+            if (generalRows.Children.Count > 0)
+                panel.Children.Add(CreateCard("GENERAL", null, generalRows));
+
+            foreach (var prop in GetEditableProperties(config))
             {
-                grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(0, GridUnitType.Auto) });
-                grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(5, GridUnitType.Pixel) });
-
-                var attr = editableProperties[i].GetCustomAttributes().Where(a => a is IConfigUIElement).FirstOrDefault() as IConfigUIElement;
-
-                UIElement elem = attr.CreateUIElement(config, editableProperties[i].Name);
-                elem.SetValue(Grid.RowProperty, 2 * i);
-                if (attr.Multicolumn)
-                {
-                    elem.SetValue(Grid.ColumnProperty, 0);
-                    elem.SetValue(Grid.ColumnSpanProperty, 2);
-                }
-                else 
-                {
-                    Label label = new Label()
-                    {
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Content = attr.OptionName,
-                        ToolTip = attr.Tooltip
-                    };
-                    label.SetValue(Grid.RowProperty, 2 * i);
-                    label.SetValue(Grid.ColumnProperty, 0);
-                    grid.Children.Add(label);
-
-                    elem.SetValue(Grid.ColumnProperty, 1);
-                }
-                grid.Children.Add(elem);
+                var attr = GetAttribute(prop);
+                if (attr is ConfigCategoryAttribute)
+                    panel.Children.Add((UIElement)attr.CreateUIElement(config, prop.Name));
             }
-            return grid;
+
+            return panel;
+        }
+
+        /// <summary>Rows only (label left, control right, hairline separators) — no outer card.</summary>
+        public static StackPanel CreateRowsPanel(object config, bool skipCategories = false)
+        {
+            var rows = new StackPanel();
+            bool first = true;
+
+            foreach (var prop in GetEditableProperties(config))
+            {
+                var attr = GetAttribute(prop);
+                if (skipCategories && attr is ConfigCategoryAttribute)
+                    continue;
+
+                UIElement element = attr.CreateUIElement(config, prop.Name);
+
+                var row = new Grid { Margin = new Thickness(0, 8, 0, 8) };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                var label = new TextBlock
+                {
+                    Text = attr.OptionName,
+                    FontSize = 12.5,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    ToolTip = attr.Tooltip,
+                };
+                Grid.SetColumn(label, 0);
+                row.Children.Add(label);
+
+                element.SetValue(Grid.ColumnProperty, 1);
+                if (element is FrameworkElement fe)
+                    fe.HorizontalAlignment = HorizontalAlignment.Right;
+                row.Children.Add(element);
+
+                if (!first)
+                {
+                    var separator = new Border
+                    {
+                        Height = 1,
+                        Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#14FFFFFF")),
+                    };
+                    rows.Children.Add(separator);
+                }
+                first = false;
+                rows.Children.Add(row);
+            }
+
+            return rows;
+        }
+
+        /// <summary>Card container matching the approved design: #2B2B2B, radius 6, uppercase header.</summary>
+        public static Border CreateCard(string header, string tooltip, UIElement content)
+        {
+            var stack = new StackPanel();
+            stack.Children.Add(new TextBlock
+            {
+                Text = header,
+                FontSize = 10.5,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#9A9A9A")),
+                Margin = new Thickness(0, 10, 0, 2),
+                ToolTip = tooltip,
+            });
+            stack.Children.Add(content);
+
+            return new Border
+            {
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2B2B2B")),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(14, 0, 14, 2),
+                Margin = new Thickness(0, 0, 0, 10),
+                Child = stack,
+            };
+        }
+
+        private static PropertyInfo[] GetEditableProperties(object config)
+        {
+            return config.GetType()
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
+                .Where(p => GetAttribute(p) != null)
+                .ToArray();
+        }
+
+        private static IConfigUIElement GetAttribute(PropertyInfo property)
+        {
+            return property.GetCustomAttributes().FirstOrDefault(a => a is IConfigUIElement) as IConfigUIElement;
         }
     }
 }

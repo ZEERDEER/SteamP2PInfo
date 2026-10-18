@@ -282,6 +282,7 @@
     <Compile Include="Config\ConfigEnumComboBoxAttribute.cs" />
     <Compile Include="Config\ConfigCategoryAttribute.cs" />
     <Compile Include="Config\ConfigBindingElementAttribute.cs" />
+    <Compile Include="Config\ConfigPingColorsPreviewAttribute.cs" />
     <Compile Include="Config\ConfigUIBuilder.cs" />
     <Compile Include="Config\EnumIndexConverter.cs" />
     <Compile Include="Config\GameConfig.cs" />
@@ -289,6 +290,7 @@
     <Compile Include="Config\OverlayAnchor.cs" />
     <Compile Include="Config\OverlayConfig.cs" />
     <Compile Include="Controls\HotKeyBox.cs" />
+    <Compile Include="Controls\ColorBox.cs" />
     <Compile Include="Dialogs.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="ReverseTextReader.cs" />

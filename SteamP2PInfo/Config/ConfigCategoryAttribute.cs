@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
-using System.Reflection;
+using System.Windows.Media;
 
 namespace SteamP2PInfo.Config
 {
@@ -24,16 +21,11 @@ namespace SteamP2PInfo.Config
 
         public UIElement CreateUIElement(object source, string path)
         {
-            // Create a collapsible panel in which the settings in this category will be placed
-            Expander expander = new Expander()
-            {
-                Header = OptionName,
-                ToolTip = Tooltip
-            };
+            object subConfig = source.GetType()
+                .GetProperty(path, BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
+                .GetValue(source);
 
-            object subConfig = source.GetType().GetProperty(path, BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy).GetValue(source);
-            expander.Content = ConfigUIBuilder.CreateConfigEditor(subConfig);
-            return expander;
+            return ConfigUIBuilder.CreateCard(OptionName, Tooltip, ConfigUIBuilder.CreateRowsPanel(subConfig));
         }
     }
 }
