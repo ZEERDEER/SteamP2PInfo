@@ -288,12 +288,12 @@
     <Compile Include="Config\IConfigUIElement.cs" />
     <Compile Include="Config\OverlayAnchor.cs" />
     <Compile Include="Config\OverlayConfig.cs" />
+    <Compile Include="Controls\HotKeyBox.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="ReverseTextReader.cs" />
     <Compile Include="SteamPeerBase.cs" />
     <Compile Include="ETWPingMonitor.cs" />
     <Compile Include="FormatUtils.cs" />
-    <Compile Include="HotkeyConverter.cs" />
     <Compile Include="HotkeyManager.cs" />
     <Compile Include="OverlayTextBlock.cs" />
     <Compile Include="OverlayWindow.xaml.cs">

@@ -49,9 +49,8 @@ namespace SteamP2PInfo.Config
         public bool ShowConnectionQuality { get; set; } = true;
 
         [JsonProperty("hotkey")]
-        [ConfigBindingElement("Overlay Hotkey", typeof(HotKeyBox), "HotKeyProperty",
-            Tooltip: "Hotkey to show/hide the overlay.",
-            ValueConverter: typeof(HotkeyConverter))]
+        [ConfigBindingElement("Overlay Hotkey", typeof(SteamP2PInfo.Controls.HotKeyBox), "ValueProperty",
+            Tooltip: "Hotkey to show/hide the overlay.")]
         public int Hotkey { get; set; } = 0;
 
         [JsonProperty("banner_format")]

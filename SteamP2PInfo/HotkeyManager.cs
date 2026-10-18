@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using SteamP2PInfo.WinAPI;
-using MahApps.Metro.Controls;
 
 namespace SteamP2PInfo
 {
@@ -52,16 +51,6 @@ namespace SteamP2PInfo
                 User32.UnhookWindowsHookEx(hHook);
                 hHook = IntPtr.Zero;
             }
-        }
-
-        public static int AddHotkey(IntPtr hWindow, Func<HotKey> getter, Action handler)
-        {
-            int iget()
-            {
-                HotKey hk = getter();
-                return (hk == null) ? 0 : (int)hk.ModifierKeys << 8 | (int)hk.Key;
-            };
-            return AddHotkey(new DynamicHotkey { hWindow = hWindow, getter = iget, handler = handler });
         }
 
         public static int AddHotkey(IntPtr hWindow, Func<int> getter, Action handler)

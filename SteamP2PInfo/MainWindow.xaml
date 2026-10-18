@@ -24,7 +24,6 @@
         </mah:WindowCommands>
     </mah:MetroWindow.RightWindowCommands>
     <mah:MetroWindow.Resources>
-        <local:HotkeyConverter x:Key="HotkeyConverter" />
         <Style x:Key="textCenter" TargetType="{x:Type TextBlock}">
             <Setter Property="TextAlignment" Value="Center"></Setter>
         </Style>
