@@ -370,7 +370,7 @@ namespace SteamP2PInfo
                 PrimaryButtonAppearance = Wpf.Ui.Controls.ControlAppearance.Primary,
             }.ShowDialogAsync();
 
-            if (result != MessageBoxResult.Primary)
+            if (result != Wpf.Ui.Controls.MessageBoxResult.Primary)
                 return null;
 
             return uint.TryParse(input.Text, out uint value) ? (int?)value : null;
