@@ -6,7 +6,7 @@
 
   <Target Name="PostBuildRelease" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
     <ItemGroup>
-      <FilesToDelete Include="$(OutputPath)*.pdb; $(OutputPath)*.xml; $(OutputPath)*.config"/>
+      <FilesToDelete Include="$(OutputPath)*.pdb; $(OutputPath)*.xml"/>
     </ItemGroup>
     <Delete Files="@(FilesToDelete)"></Delete>
     <RemoveDir Directories="$(OutputPath)x86; $(OutputPath)arm64; $(OutputPath)de"></RemoveDir>
