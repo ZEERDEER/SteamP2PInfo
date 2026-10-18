@@ -37,7 +37,7 @@ namespace SteamP2PInfo {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("C:\\Program Files (x86)\\Steam\\logs\\ipc_SteamClient.log")]
+        [global::System.Configuration.DefaultSettingValueAttribute("D:\\Steam\\logs\\ipc_SteamClient.log")]
         public string SteamLogPath {
             get {
                 return ((string)(this["SteamLogPath"]));
@@ -49,7 +49,7 @@ namespace SteamP2PInfo {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("C:\\Program Files (x86)\\Steam\\logs\\bootstrap_log.txt")]
+        [global::System.Configuration.DefaultSettingValueAttribute("D:\\Steam\\logs\\bootstrap_log.txt")]
         public string SteamBootstrapLogPath {
             get {
                 return ((string)(this["SteamBootstrapLogPath"]));
